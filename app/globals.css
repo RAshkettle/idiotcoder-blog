@@ -1,0 +1,102 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "VT323";
+  src: url("https://fonts.googleapis.com/css2?family=VT323&display=swap");
+  font-display: swap;
+}
+
+:root {
+  --foreground-rgb: 0, 0, 0;
+  --background-rgb: 0, 0, 0;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  background: rgb(var(--background-rgb));
+  font-family: "VT323", monospace;
+}
+
+/* Much more pronounced scanlines */
+.bg-scanline {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 50%, rgba(255, 255, 255, 0.1) 50%);
+  background-size: 100% 4px;
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.bg-crt-glow {
+  background: radial-gradient(
+    ellipse at center,
+    rgba(100, 100, 100, 0.05) 0%,
+    rgba(0, 0, 0, 0.2) 80%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  pointer-events: none;
+}
+
+.glow {
+  text-shadow: 0 0 5px rgba(245, 158, 11, 0.7);
+}
+
+/* RTS UI Elements */
+.rts-panel {
+  @apply relative border-2 border-amber-900/80 bg-black/80 overflow-hidden;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.8), 0 0 5px
+    rgba(245, 158, 11, 0.3);
+}
+
+.rts-panel-header {
+  @apply bg-gradient-to-r from-amber-900/80 to-amber-800/60 border-b-2 border-amber-900/80;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.rts-panel-inner {
+  @apply bg-black/60;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(30, 30, 30, 0.1),
+    rgba(30, 30, 30, 0.1) 10px,
+    rgba(10, 10, 10, 0.1) 10px,
+    rgba(10, 10, 10, 0.1) 20px
+  );
+}
+
+.rts-button {
+  @apply relative text-amber-400 bg-gradient-to-b from-amber-900/60 to-amber-950/80 border-2 border-amber-800/80 hover:from-amber-800/60 hover:to-amber-900/80 transition-all;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.8);
+}
+
+.rts-button:active {
+  @apply bg-gradient-to-b from-amber-950/80 to-amber-900/60;
+  transform: translateY(1px);
+  box-shadow: inset -1px -1px 0 rgba(255, 255, 255, 0.1), inset 1px 1px 0 rgba(0, 0, 0, 0.8);
+}
+
+.rts-button-small {
+  @apply rts-button text-xs;
+}
+
+.rts-button-square {
+  @apply rts-button flex items-center justify-center;
+}
+
+.rts-screen {
+  @apply relative border-2 border-amber-900/80 bg-black/60 overflow-hidden;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8), 0 0 5px rgba(245, 158, 11, 0.3);
+}
+
+.rts-resource-bar {
+  @apply rts-panel p-2 mb-4;
+}
+
+.rts-resource {
+  @apply bg-gradient-to-r from-amber-950/80 to-amber-900/60 border border-amber-800/60 px-2 py-1;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.6);
+}
+
+.rts-resource-icon {
+  @apply bg-black/40 border border-amber-900/60 rounded-sm;
+}
