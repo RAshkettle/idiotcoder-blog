@@ -1,13 +1,7 @@
-import {
-  Calendar,
-  ChevronRight,
-  Gamepad2,
-  Tag,
-  Terminal,
-  User,
-} from "lucide-react";
+import { Calendar, ChevronRight, Gamepad2, Tag, User } from "lucide-react";
 import Link from "next/link";
 import CommanderProfile from "../components/commander-profile";
+import Tags from "../components/tags";
 
 export default function Home() {
   return (
@@ -20,34 +14,6 @@ export default function Home() {
       <div className="fixed inset-0 bg-[url('/placeholder.svg?height=100&width=100&text=BG')] bg-repeat opacity-10 z-0"></div>
 
       <div className="container mx-auto px-4 py-8 relative z-10">
-        {/* RTS-style header panel */}
-        <header className="rts-panel mb-8 p-1">
-          <div className="rts-panel-inner p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="rts-button-square p-1 w-10 h-10 flex items-center justify-center">
-                <Terminal className="w-6 h-6 text-amber-400" />
-              </div>
-              <h1 className="text-2xl font-bold tracking-tight text-amber-400 glow">
-                Idiotcoder.com
-              </h1>
-            </div>
-            <nav>
-              <ul className="flex gap-4">
-                {["HOME", "PROJECTS", "GAME_JAMS", "ABOUT"].map((item) => (
-                  <li key={item}>
-                    <Link
-                      href="#"
-                      className="rts-button px-3 py-1 inline-block"
-                    >
-                      {item}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          </div>
-        </header>
-
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Main content area */}
           <div className="md:col-span-3">
@@ -236,39 +202,7 @@ export default function Home() {
             </div>
 
             {/* Tags section */}
-            <div className="rts-panel">
-              <div className="rts-panel-header px-3 py-1">
-                <h2 className="text-lg font-bold text-amber-400">
-                  UNIT_CATEGORIES
-                </h2>
-              </div>
-              <div className="rts-panel-inner p-4">
-                <div className="grid grid-cols-2 gap-2">
-                  {[
-                    "STRATEGY",
-                    "PIXEL_ART",
-                    "GAME_JAM",
-                    "UNITY",
-                    "GODOT",
-                    "TUTORIAL",
-                    "DEVLOG",
-                    "RETRO",
-                    "AUDIO",
-                    "TACTICS",
-                    "DESIGN",
-                    "TOOLS",
-                  ].map((tag) => (
-                    <Link
-                      key={tag}
-                      href="#"
-                      className="rts-button-small py-1 text-center text-xs"
-                    >
-                      {tag}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <Tags />
           </div>
         </div>
       </div>

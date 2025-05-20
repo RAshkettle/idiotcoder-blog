@@ -1,5 +1,5 @@
 import Link from "next/link";
-
+//There is no need for any state as this is pure text.
 const CommanderProfile = () => {
   return (
     <div className="rts-panel mb-6">
