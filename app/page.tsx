@@ -1,9 +1,16 @@
 import CommanderProfile from "@/components/commander-profile";
 import Tags from "@/components/tags";
+import { getArticlesByType, getSortedArticles } from "@/lib/articles";
 import { Calendar, ChevronRight, Gamepad2, Tag, User } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
+  const sortedArticles = getSortedArticles();
+  const groupedArticles = getArticlesByType();
+
+  const featuredPost = sortedArticles[0];
+  console.log(featuredPost);
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
       {/* Main content area */}
@@ -14,23 +21,24 @@ export default function Home() {
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
               <span className="text-yellow-400">⚙️</span>
             </div>
-            <span className="text-yellow-400">POSTS: 42</span>
+            <span className="text-yellow-400">POSTS: 1</span>
           </div>
           <div className="rts-resource flex items-center gap-2">
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
               <span className="text-green-400">🏆</span>
             </div>
-            <span className="text-green-400">JAMS: 12</span>
+            <span className="text-green-400">JAMS: 0</span>
           </div>
           <div className="rts-resource flex items-center gap-2">
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
               <span className="text-blue-400">💾</span>
             </div>
-            <span className="text-blue-400">PROJECTS: 8</span>
+            <span className="text-blue-400">PROJECTS: 0</span>
           </div>
         </div>
 
         {/* Featured post - RTS panel style */}
+        {/* For this panel, we will use the most recent post of any kind...     */}
         <div className="rts-panel mb-6">
           <div className="rts-panel-header px-3 py-1">
             <h2 className="text-lg font-bold text-amber-400">
@@ -40,17 +48,20 @@ export default function Home() {
           <div className="rts-panel-inner p-4">
             <article>
               <h3 className="text-xl font-bold mb-2 text-amber-300">
-                Ludum Dare 54: "Pixel Panic" Post-Mortem
+                {featuredPost.title}
               </h3>
               <div className="flex items-center gap-4 text-xs text-amber-400/70 mb-4">
                 <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" /> 10.15.2023
+                  <Calendar className="w-3 h-3" /> {featuredPost.date}
                 </span>
                 <span className="flex items-center gap-1">
                   <User className="w-3 h-3" /> COMMANDER
                 </span>
                 <span className="flex items-center gap-1">
-                  <Tag className="w-3 h-3" /> GAME_JAM
+                  <Tag className="w-3 h-3" />
+                  {featuredPost.categories.map((category) => {
+                    return category + " ";
+                  })}
                 </span>
               </div>
               <div className="relative aspect-video mb-4 rts-screen overflow-hidden local-scanlines">
@@ -61,15 +72,11 @@ export default function Home() {
                 />
               </div>
               <p className="mb-4 leading-relaxed text-amber-100">
-                &gt; MISSION REPORT: Just completed Ludum Dare 54 with my entry
-                "Pixel Panic". The theme was "Limited Space" so I created a
-                tactical resource management game where you command units in an
-                increasingly cramped battlefield. The 48-hour time constraint
-                was challenging, but the core mechanics are solid...
+                &gt; TBD...get first 20 words or so...
               </p>
               <div className="flex justify-end">
                 <Link
-                  href="/tutorials/1"
+                  href={`/${featuredPost.id}`}
                   className="rts-button px-4 py-2 inline-flex items-center gap-2"
                 >
                   FULL_REPORT <ChevronRight className="w-4 h-4" />
