@@ -2,7 +2,7 @@ import { Terminal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type React from "react";
-import ScanlineToggle from "../components/scanline-toggle";
+import ResponsiveNav from "../components/responsive-nav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -31,7 +31,7 @@ export default function RootLayout({
 
         <div className="container mx-auto px-4 py-8 relative z-10">
           {/* RTS-style header panel */}
-          <header className="rts-panel mb-8 p-1">
+          <header className="rts-panel mb-8 p-1 relative">
             <div className="rts-panel-inner p-3 flex items-center justify-between local-scanlines">
               <div className="flex items-center gap-2 z-10">
                 <Link
@@ -44,23 +44,7 @@ export default function RootLayout({
                   COMMAND_CENTER
                 </h1>
               </div>
-              <nav className="z-10">
-                <ul className="flex gap-4 items-center">
-                  {["TUTORIALS", "GAME_JAMS", "MISC", "ABOUT"].map((item) => (
-                    <li key={item}>
-                      <Link
-                        href="#"
-                        className="rts-button px-3 py-1 inline-block"
-                      >
-                        {item}
-                      </Link>
-                    </li>
-                  ))}
-                  <li>
-                    <ScanlineToggle />
-                  </li>
-                </ul>
-              </nav>
+              <ResponsiveNav />
             </div>
           </header>
 
