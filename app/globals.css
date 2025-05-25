@@ -13,6 +13,10 @@
   --background-rgb: 0, 0, 0;
 }
 
+#content h1 {
+  font-size: xx-large;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
@@ -21,7 +25,11 @@ body {
 
 /* Much more pronounced scanlines */
 .bg-scanline {
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 50%, rgba(255, 255, 255, 0.1) 50%);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.8) 50%,
+    rgba(255, 255, 255, 0.1) 50%
+  );
   background-size: 100% 4px;
   pointer-events: none;
 }
@@ -52,7 +60,11 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 50%, rgba(255, 255, 255, 0.1) 50%);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.8) 50%,
+    rgba(255, 255, 255, 0.1) 50%
+  );
   background-size: 100% 4px;
   opacity: 0.3;
   pointer-events: none;
@@ -88,7 +100,11 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.8) 50%, rgba(255, 255, 255, 0.1) 50%);
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.8) 50%,
+    rgba(255, 255, 255, 0.1) 50%
+  );
   background-size: 100% 4px;
   opacity: 0.4;
   pointer-events: none;
@@ -98,8 +114,8 @@ body {
 /* RTS UI Elements */
 .rts-panel {
   @apply relative border-2 border-amber-900/80 bg-black/80 overflow-hidden;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.8), 0 0 5px
-    rgba(245, 158, 11, 0.3);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.8), 0 0 5px rgba(245, 158, 11, 0.3);
 }
 
 .rts-panel-header {
@@ -120,13 +136,15 @@ body {
 
 .rts-button {
   @apply relative text-amber-400 bg-gradient-to-b from-amber-900/60 to-amber-950/80 border-2 border-amber-800/80 hover:from-amber-800/60 hover:to-amber-900/80 transition-all;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.8);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.8);
 }
 
 .rts-button:active {
   @apply bg-gradient-to-b from-amber-950/80 to-amber-900/60;
   transform: translateY(1px);
-  box-shadow: inset -1px -1px 0 rgba(255, 255, 255, 0.1), inset 1px 1px 0 rgba(0, 0, 0, 0.8);
+  box-shadow: inset -1px -1px 0 rgba(255, 255, 255, 0.1),
+    inset 1px 1px 0 rgba(0, 0, 0, 0.8);
 }
 
 .rts-button-small {
@@ -148,7 +166,8 @@ body {
 
 .rts-resource {
   @apply bg-gradient-to-r from-amber-950/80 to-amber-900/60 border border-amber-800/60 px-2 py-1;
-  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.6);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6);
 }
 
 .rts-resource-icon {

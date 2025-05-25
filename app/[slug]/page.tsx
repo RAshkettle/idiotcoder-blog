@@ -5,9 +5,9 @@ const Article = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const articleData = await getArticleData(slug);
 
   return (
-    <>
+    <div id="content">
       <article dangerouslySetInnerHTML={{ __html: articleData.contentHtml }} />
-    </>
+    </div>
   );
 };
 
