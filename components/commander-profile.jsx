@@ -21,8 +21,8 @@ const CommanderProfile = () => {
         </div>
         <p className="text-sm mb-4 text-amber-100">
           &gt; PERSONNEL FILE: Specialized in tactical game design and
-          retro-inspired strategy games. Veteran of multiple game jam campaigns
-          with expertise in pixel art and game mechanics.
+          retro-inspired games. Veteran of multiple game jam campaigns with
+          expertise in pixel art and game mechanics.
         </p>
         <div className="grid grid-cols-3 gap-2">
           <Link
@@ -33,7 +33,7 @@ const CommanderProfile = () => {
             GITHUB
           </Link>
           <Link
-            href="https://fatoldyeti.itch.io/"
+            href="https://idiotcoder.itch.io/"
             target="_blank"
             className="rts-button-small py-1 text-center"
           >
