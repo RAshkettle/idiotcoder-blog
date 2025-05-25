@@ -8,10 +8,9 @@ import ServiceWorkerRegistration from "../components/service-worker";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Command Center - RTS Game Development Blog",
+  title: "Idiotcoder.com - Game Development Blog",
   description:
-    "A tactical blog about game jams, personal projects, and RTS game development",
-  generator: "v0.dev",
+    "A tactical blog about game jams, personal projects, and retro game development",
 };
 
 export default function RootLayout({
@@ -51,7 +50,7 @@ export default function RootLayout({
                   <Terminal className="w-6 h-6 text-amber-400" />
                 </Link>
                 <h1 className="text-2xl font-bold tracking-tight text-amber-400 glow">
-                  COMMAND_CENTER
+                  IDIOTCODER.COM
                 </h1>
               </div>
               <ResponsiveNav />
