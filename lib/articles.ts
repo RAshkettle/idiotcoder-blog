@@ -87,22 +87,12 @@ export const getSortedArticles = (): ArticleItem[] => {
       matterResult = matter(fileContents);
     }
 
-    console.log("Parsed article:", {
-      filename,
-      title: matterResult.data.title,
-      date: matterResult.data.date,
-      article_type:
-        matterResult.data.article_type || matterResult.data.file_type,
-    });
-
     return {
       id,
-      title: matterResult.data.title || id,
-      date: matterResult.data.date || "01-01-2024",
-      categories:
-        matterResult.data.categories || matterResult.data.category || [],
-      article_type:
-        matterResult.data.article_type || matterResult.data.file_type || "misc",
+      title: matterResult.data.title,
+      date: matterResult.data.date,
+      categories: matterResult.data.categories,
+      article_type: matterResult.data.article_type,
     };
   });
   return allArticleData.sort((a, b) => {

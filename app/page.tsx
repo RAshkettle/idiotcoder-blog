@@ -9,7 +9,6 @@ export default function Home() {
   const groupedArticles = getArticlesByType();
 
   const featuredPost = sortedArticles[0];
-  console.log(featuredPost);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
