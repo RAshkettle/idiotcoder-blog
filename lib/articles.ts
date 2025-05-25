@@ -74,11 +74,14 @@ export const getArticlesByType = (): Record<string, ArticleItem[]> => {
 export const getArticleData = async (id: string) => {
   const fullPath = path.join(articlesDirectory, `${id}.md`);
   const fileContents = fs.readFileSync(fullPath, "utf-8");
+
+  // Parse the frontmatter and content
   const matterResult = matter(fileContents);
 
+  // Process only the content (without frontmatter)
   const processedContent = await remark()
     .use(html)
-    .process(matterResult.content);
+    .process(matterResult.content); // This should be the content WITHOUT frontmatter
 
   const contentHtml = processedContent.toString();
 

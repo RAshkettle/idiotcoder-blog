@@ -1,4 +1,4 @@
-
+---
 title: "Welcome"
 categories: ["strategy", "devlog"]
 article_type: "MISC"
