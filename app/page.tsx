@@ -65,7 +65,7 @@ export default function Home() {
               </div>
               <div className="relative aspect-video mb-4 rts-screen overflow-hidden local-scanlines">
                 <img
-                  src="/placeholder.svg?height=400&width=800&text=GAME_SCREENSHOT"
+                  src="rts.webp"
                   alt="Pixel Panic Game Screenshot"
                   className="w-full h-full object-cover z-10 relative"
                 />

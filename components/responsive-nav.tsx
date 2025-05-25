@@ -22,13 +22,26 @@ export default function ResponsiveNav() {
     <nav className="z-10">
       {/* Desktop Navigation */}
       <ul className="hidden md:flex gap-4 items-center">
-        {menuItems.map((item) => (
-          <li key={item}>
-            <Link href="#" className="rts-button px-3 py-1 inline-block">
-              {item}
-            </Link>
-          </li>
-        ))}
+        <li key="TUTORIALS">
+          <Link href="#" className="rts-button px-3 py-1 inline-block">
+            TUTORIALS
+          </Link>
+        </li>
+        <li key="GAME_JAMS">
+          <Link href="#" className="rts-button px-3 py-1 inline-block">
+            GAME_JAMS
+          </Link>
+        </li>
+        <li key="MISC">
+          <Link href="#" className="rts-button px-3 py-1 inline-block">
+            MISC
+          </Link>
+        </li>
+        <li key="ABOUT">
+          <Link href="/about" className="rts-button px-3 py-1 inline-block">
+            ABOUT
+          </Link>
+        </li>
         <li>
           <ScanlineToggle />
         </li>

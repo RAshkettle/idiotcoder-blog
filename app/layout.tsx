@@ -36,7 +36,7 @@ export default function RootLayout({
         <CacheBuster />
         <ServiceWorkerRegistration />
         {/* RTS-style background */}
-        <div className="fixed inset-0 bg-[url('/placeholder.svg?height=100&width=100&text=BG')] bg-repeat opacity-10 z-0"></div>
+        <div className="fixed inset-0 bg-[url('/bg.webp?height=100&width=100&text=BG')] bg-cover opacity-10 z-0"></div>
 
         <div className="container mx-auto px-4 py-8 relative z-10">
           {/* RTS-style header panel */}
