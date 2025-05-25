@@ -2,6 +2,7 @@ import { Terminal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type React from "react";
+import ScanlineToggle from "../components/scanline-toggle";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -44,8 +45,8 @@ export default function RootLayout({
                 </h1>
               </div>
               <nav className="z-10">
-                <ul className="flex gap-4">
-                  {["HOME", "PROJECTS", "GAME_JAMS", "ABOUT"].map((item) => (
+                <ul className="flex gap-4 items-center">
+                  {["TUTORIALS", "GAME_JAMS", "MISC", "ABOUT"].map((item) => (
                     <li key={item}>
                       <Link
                         href="#"
@@ -55,6 +56,9 @@ export default function RootLayout({
                       </Link>
                     </li>
                   ))}
+                  <li>
+                    <ScanlineToggle />
+                  </li>
                 </ul>
               </nav>
             </div>
