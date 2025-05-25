@@ -27,65 +27,11 @@ export const getSortedArticles = (): ArticleItem[] => {
 
   const allArticleData = mdFiles.map((filename) => {
     const id = filename.replace(/\.md$/, "");
-
     const fullPath = path.join(articlesDirectory, filename);
     const fileContents = fs.readFileSync(fullPath, "utf-8");
 
-    let matterResult;
-
-    // Check if this is a VSCode notebook file
-    if (fileContents.includes("<VSCode.Cell")) {
-      // Parse notebook file - extract frontmatter from first cell
-      const firstCellMatch = fileContents.match(
-        /<VSCode\.Cell[^>]*language="markdown"[^>]*>([\s\S]*?)<\/VSCode\.Cell>/
-      );
-
-      if (firstCellMatch) {
-        const firstCellContent = firstCellMatch[1].trim();
-
-        // Check if first cell contains frontmatter-like content
-        if (
-          firstCellContent.includes("title:") &&
-          firstCellContent.includes("date:")
-        ) {
-          // Add YAML frontmatter delimiters if missing
-          const frontmatterContent = firstCellContent.startsWith("---")
-            ? firstCellContent
-            : `---\n${firstCellContent}\n---`;
-
-          matterResult = matter(frontmatterContent);
-        } else {
-          // Fallback for notebook without proper frontmatter
-          matterResult = {
-            data: {
-              title: id
-                .replace(/-/g, " ")
-                .replace(/\b\w/g, (l) => l.toUpperCase()),
-              date: "01-01-2024",
-              categories: ["misc"],
-              article_type: "misc",
-            },
-            content: fileContents,
-          };
-        }
-      } else {
-        // Fallback if no markdown cells found
-        matterResult = {
-          data: {
-            title: id
-              .replace(/-/g, " ")
-              .replace(/\b\w/g, (l) => l.toUpperCase()),
-            date: "01-01-2024",
-            categories: ["misc"],
-            article_type: "misc",
-          },
-          content: fileContents,
-        };
-      }
-    } else {
-      // Regular markdown file
-      matterResult = matter(fileContents);
-    }
+    // Only process regular markdown files
+    const matterResult = matter(fileContents);
 
     // Ensure categories is always an array
     let categories =

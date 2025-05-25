@@ -1,7 +1,8 @@
 import { getArticleData } from "@/lib/articles";
 
-const Article = async ({ params }: { params: { slug: string } }) => {
-  const articleData = await getArticleData(params.slug);
+const Article = async ({ params }: { params: Promise<{ slug: string }> }) => {
+  const { slug } = await params;
+  const articleData = await getArticleData(slug);
 
   return (
     <>
