@@ -87,12 +87,21 @@ export const getSortedArticles = (): ArticleItem[] => {
       matterResult = matter(fileContents);
     }
 
+    // Ensure categories is always an array
+    let categories =
+      (matterResult.data as any).categories ||
+      (matterResult.data as any).category ||
+      [];
+    if (typeof categories === "string") {
+      categories = [categories];
+    }
+
     return {
       id,
-      title: matterResult.data.title,
-      date: matterResult.data.date,
-      categories: matterResult.data.categories,
-      article_type: matterResult.data.article_type,
+      title: matterResult.data.title || id,
+      date: matterResult.data.date || "01-01-2024",
+      categories: categories,
+      article_type: matterResult.data.article_type || "misc",
     };
   });
   return allArticleData.sort((a, b) => {

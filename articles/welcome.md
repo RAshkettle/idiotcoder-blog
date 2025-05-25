@@ -1,6 +1,7 @@
+
 ---
 title: "Welcome"
-category: ["strategy", "devlog"]
+categories: ["strategy", "devlog"]
 article_type: "Misc"
 date: "05-25-2025"
 ---
