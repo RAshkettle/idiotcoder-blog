@@ -5,8 +5,10 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:fresh": "rm -rf .next && next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "clear-cache": "rm -rf .next && rm -rf node_modules/.cache"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",

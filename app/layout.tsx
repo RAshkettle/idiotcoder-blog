@@ -2,7 +2,9 @@ import { Terminal } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import type React from "react";
+import CacheBuster from "../components/cache-buster";
 import ResponsiveNav from "../components/responsive-nav";
+import ServiceWorkerRegistration from "../components/service-worker";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,12 +22,20 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <meta
+          httpEquiv="Cache-Control"
+          content="no-cache, no-store, must-revalidate"
+        />
+        <meta httpEquiv="Pragma" content="no-cache" />
+        <meta httpEquiv="Expires" content="0" />
         <link
-          href="https://fonts.googleapis.com/css2?family=VT323&display=swap"
+          href={`https://fonts.googleapis.com/css2?family=VT323&display=swap&v=${Date.now()}`}
           rel="stylesheet"
         />
       </head>
       <body className="bg-black text-amber-400 font-mono crt-effects">
+        <CacheBuster />
+        <ServiceWorkerRegistration />
         {/* RTS-style background */}
         <div className="fixed inset-0 bg-[url('/placeholder.svg?height=100&width=100&text=BG')] bg-repeat opacity-10 z-0"></div>
 
