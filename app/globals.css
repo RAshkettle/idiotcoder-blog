@@ -13,6 +13,10 @@
   --background-rgb: 0, 0, 0;
 }
 
+#content {
+  font-size: 1.125rem; /* 18px, 3 points larger than default 16px */
+}
+
 #content h1 {
   font-size: xx-large;
 }
@@ -187,4 +191,115 @@ body {
 
 .rts-resource-icon {
   @apply bg-black/40 border border-amber-900/60 rounded-sm;
+}
+
+/* Syntax highlighting styles for code blocks */
+#content pre {
+  @apply bg-black text-white p-4 rounded-md overflow-x-auto my-4;
+  font-family: "Fira Code", "Monaco", "Cascadia Code", "Roboto Mono", monospace;
+}
+
+#content pre code {
+  @apply bg-transparent text-white;
+  display: block;
+  padding: 0;
+}
+
+#content code {
+  @apply bg-black text-white px-1 py-0.5 rounded text-sm;
+  font-family: "Fira Code", "Monaco", "Cascadia Code", "Roboto Mono", monospace;
+}
+
+/* Highlight.js theme for Go syntax highlighting */
+.hljs {
+  background: #000000 !important;
+  color: #ffffff !important;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #7c7c7c;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-subst {
+  color: #ff79c6;
+  font-weight: bold;
+}
+
+.hljs-number,
+.hljs-literal,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag .hljs-attr {
+  color: #bd93f9;
+}
+
+.hljs-string,
+.hljs-doctag {
+  color: #f1fa8c;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-selector-id {
+  color: #50fa7b;
+  font-weight: bold;
+}
+
+.hljs-type,
+.hljs-class .hljs-title {
+  color: #8be9fd;
+}
+
+.hljs-tag,
+.hljs-name,
+.hljs-attribute {
+  color: #ff79c6;
+}
+
+.hljs-regexp,
+.hljs-link {
+  color: #f1fa8c;
+}
+
+.hljs-symbol,
+.hljs-bullet {
+  color: #ff79c6;
+}
+
+.hljs-built_in,
+.hljs-builtin-name {
+  color: #8be9fd;
+}
+
+.hljs-meta {
+  color: #6272a4;
+}
+
+.hljs-deletion {
+  background: #ff5555;
+}
+
+.hljs-addition {
+  background: #50fa7b;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+/* Go-specific syntax highlighting */
+.hljs-function {
+  color: #50fa7b;
+}
+
+.hljs-params {
+  color: #ffb86c;
 }

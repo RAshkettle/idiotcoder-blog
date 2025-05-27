@@ -3,8 +3,11 @@ import fs from "fs";
 import matter from "gray-matter";
 import moment from "moment";
 import path from "path";
+import rehypeHighlight from "rehype-highlight";
+import rehypeRaw from "rehype-raw";
+import rehypeStringify from "rehype-stringify";
 import { remark } from "remark";
-import html from "remark-html";
+import remarkRehype from "remark-rehype";
 
 const articlesDirectory = path.join(process.cwd(), "articles");
 
@@ -80,8 +83,11 @@ export const getArticleData = async (id: string) => {
 
   // Process only the content (without frontmatter)
   const processedContent = await remark()
-    .use(html)
-    .process(matterResult.content); // This should be the content WITHOUT frontmatter
+    .use(remarkRehype, { allowDangerousHtml: true })
+    .use(rehypeRaw)
+    .use(rehypeHighlight)
+    .use(rehypeStringify)
+    .process(matterResult.content);
 
   const contentHtml = processedContent.toString();
 

@@ -1,8 +1,8 @@
----
 title: "Stopwatch"
 date: "05-27-2025"
 article_type: "TUTORIALS"
 categories: ["tools", "go", "tutorial"]
+
 ---
 
 # Stopwatch - A Timer implementation for Ebitengine
@@ -31,4 +31,34 @@ Next, let's get our only external dependency, ebitengine.
 
 `go get github.com/hajimehoshi/ebiten/v2`
 
+Your go.mod should look something like this:
+
+```toml
+module github.com/RAshkettle/Stopwatch
+
+go 1.24.3
+
+require github.com/hajimehoshi/ebiten/v2 v2.8.8
+
+require (
+ github.com/ebitengine/gomobile v0.0.0-20240911145611-4856209ac325 // indirect
+ github.com/ebitengine/hideconsole v1.0.0 // indirect
+ github.com/ebitengine/purego v0.8.0 // indirect
+ github.com/jezek/xgb v1.1.1 // indirect
+ golang.org/x/sync v0.8.0 // indirect
+ golang.org/x/sys v0.25.0 // indirect
+)
+```
+
 Now we are ready to start. Create a file named `stopwatch.go`
+
+First we start with a simple package declaration and imports.
+
+```go
+package main
+
+import(
+"time"
+"github.com/hajimeohoshi/ebiten/v2"
+)
+```
