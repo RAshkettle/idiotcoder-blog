@@ -7,7 +7,7 @@ import Link from "next/link";
 export default function Home() {
   const sortedArticles = getSortedArticles();
   const groupedArticles = getArticlesByType();
-  console.log(sortedArticles);
+  const articleCount = sortedArticles.length;
 
   const featuredPost = sortedArticles[0];
 
@@ -21,7 +21,7 @@ export default function Home() {
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
               <span className="text-yellow-400">⚙️</span>
             </div>
-            <span className="text-yellow-400">POSTS: 1</span>
+            <span className="text-yellow-400">POSTS: {articleCount}</span>
           </div>
           <div className="rts-resource flex items-center gap-2">
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
@@ -71,9 +71,7 @@ export default function Home() {
                   className="w-full h-full object-cover z-10 relative"
                 />
               </div>
-              <p className="mb-4 leading-relaxed text-amber-100">
-                &gt; TBD...get first 20 words or so...
-              </p>
+
               <div className="flex justify-end">
                 <Link
                   href={`/${featuredPost.id}`}
