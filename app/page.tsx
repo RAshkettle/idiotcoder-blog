@@ -7,6 +7,7 @@ import Link from "next/link";
 export default function Home() {
   const sortedArticles = getSortedArticles();
   const groupedArticles = getArticlesByType();
+  console.log(sortedArticles);
 
   const featuredPost = sortedArticles[0];
 

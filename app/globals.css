@@ -17,6 +17,21 @@
   font-size: xx-large;
 }
 
+#content h2 {
+  @apply py-4;
+}
+#content p {
+  @apply py-1;
+}
+
+#content p code {
+  @apply bg-black;
+}
+
+#content img {
+  @apply object-scale-down max-h-full drop-shadow-md rounded-md m-auto;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: rgb(var(--background-rgb));
