@@ -17,6 +17,19 @@
   font-size: 1.125rem; /* 18px, 3 points larger than default 16px */
 }
 
+#content a {
+  color: #3b82f6 !important;
+  text-decoration: underline !important;
+}
+
+#content a:visited {
+  color: #a855f7 !important;
+}
+
+#content a:hover {
+  color: #1d4ed8 !important;
+}
+
 #content h1 {
   font-size: xx-large;
 }
@@ -302,4 +315,17 @@ body {
 
 .hljs-params {
   color: #ffb86c;
+}
+
+#content a {
+  color: #3b82f6 !important;
+  text-decoration: underline !important;
+}
+
+#content a:visited {
+  color: #a855f7 !important;
+}
+
+#content a:hover {
+  color: #1d4ed8 !important;
 }

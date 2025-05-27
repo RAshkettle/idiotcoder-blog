@@ -10,7 +10,7 @@ const CommanderProfile = () => {
         <div className="text-center mb-4">
           <div className="w-24 h-24 mx-auto relative mb-2 rts-screen rounded-full overflow-hidden">
             <img
-              src="/me.svg?height=100&width=100&text=CMDR"
+              src="/me.png?height=100&width=100&text=CMDR"
               alt="Idiotcoder Avatar"
               className="w-full h-full object-cover"
             />

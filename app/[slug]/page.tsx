@@ -5,7 +5,7 @@ const Article = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const articleData = await getArticleData(slug);
 
   return (
-    <div id="content">
+    <div id="content" className="prose prose-invert max-w-none">
       <article dangerouslySetInnerHTML={{ __html: articleData.contentHtml }} />
     </div>
   );
