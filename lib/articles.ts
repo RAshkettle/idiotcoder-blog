@@ -100,3 +100,33 @@ export const getArticleData = async (id: string) => {
     categories: matterResult.data.categories,
   };
 };
+
+// Helper function to get first 20 words from content
+export const getFirstWords = (
+  content: string,
+  wordCount: number = 20
+): string => {
+  // Remove markdown images and replace with [img]
+  const contentWithImagePlaceholders = content.replace(
+    /!\[.*?\]\(.*?\)/g,
+    "[img]"
+  );
+
+  // Remove other markdown formatting
+  const plainText = contentWithImagePlaceholders
+    .replace(/#{1,6}\s/g, "") // Remove headers
+    .replace(/\*\*(.*?)\*\*/g, "$1") // Remove bold
+    .replace(/\*(.*?)\*/g, "$1") // Remove italic
+    .replace(/`(.*?)`/g, "$1") // Remove inline code
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1") // Remove links, keep text
+    .replace(/^\s*[-*+]\s+/gm, "") // Remove list markers
+    .replace(/^\s*\d+\.\s+/gm, "") // Remove numbered list markers
+    .replace(/\n+/g, " ") // Replace newlines with spaces
+    .trim();
+
+  const words = plainText.split(/\s+/).filter((word) => word.length > 0);
+  return (
+    words.slice(0, wordCount).join(" ") +
+    (words.length > wordCount ? "..." : "")
+  );
+};

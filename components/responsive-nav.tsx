@@ -23,7 +23,7 @@ export default function ResponsiveNav() {
       {/* Desktop Navigation */}
       <ul className="hidden md:flex gap-4 items-center">
         <li key="TUTORIALS">
-          <Link href="#" className="rts-button px-3 py-1 inline-block">
+          <Link href="/tutorials" className="rts-button px-3 py-1 inline-block">
             TUTORIALS
           </Link>
         </li>
