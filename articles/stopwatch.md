@@ -99,11 +99,11 @@ So, once we have a new stopwatch, we need to be able to start and stop it. Let's
 
 ```go
 func (s *Stopwatch) Start() {
-	s.isActive = true
+ s.isActive = true
 }
 
 func (s *Stopwatch) Stop() {
-	s.isActive = false
+ s.isActive = false
 }
 ```
 
@@ -113,7 +113,7 @@ Let's allow the user to reset the clock in the event they want to restart before
 
 ```go
 func (s *Stopwatch) Reset() {
-	s.currentTicks = 0
+ s.currentTicks = 0
 }
 
 ```
@@ -122,9 +122,9 @@ Now of course, there is no magic here. We need to update the ticks. We will crea
 
 ```go
 func (s *Stopwatch) Update() {
-	if s.isActive && s.maxTicks < s.currentTicks {
-		s.currentTicks++
-	}
+ if s.isActive && s.currentTicks < s.maxTicks {
+  s.currentTicks++
+ }
 }
 ```
 
@@ -134,8 +134,47 @@ Lastly we need to check if it's finished. Normally I'd use an event for this, bu
 
 ```go
 func (s *Stopwatch) IsDone() bool {
-	return s.maxTicks <= s.currentTicks
+ return s.maxTicks <= s.currentTicks
 }
 ```
 
 This simple check on every update (after the update is called) should be plenty for our needs. It is a simple timer after all. Note that you could replace the check in the Update function with a call to this now that it's available.
+
+You can find the code and the tests on my [github repo](https://www.github.com/RAshkettle/Stopwatch).
+
+## BONUS: PACKAGE DEPLOY _(optional)_
+
+At this point, you should have your repo all set. If you look at mine, I've prettied up the readme a bit and added documentation to all my public methods and the package. There is only a little more to do to get things set up for deployment (if you so desire).
+
+First thing first...we need to version it.
+
+```git tag v1.0.0
+
+```
+
+Then push to origin
+
+```git push origin --tags
+
+```
+
+Now things are ready. Go packages aren't like most packages. Instead of building or hosting packages in a package-repo like nexus, go just pulls the code from github (or wherever) and compiles it into your application. There is some precompile cachine, but that's the general way of it.
+So, we are already hosting our library and we can pull it down like any other. I want more. I want my package to be searchable on [pkg.go.dev](https://pkg.go.dev). So, let's prepart our documentation and set things up for it to add us to its index.
+
+Make sure you have godoc installed
+
+```
+go install golang.org/x/tools/cmd/godoc@latest
+```
+
+Test it locally and see how the documentation works.
+
+```
+godoc -http=:6060
+```
+
+Open your browser to `localhost:6060/pkg/github.com/<YourName>/Stopwatch` and view your documentation. Edit until you are happy with it.
+
+Now we are going to request indexing. Navigate to `https://pkg.go.dev/github.com/<YourName>/Stopwatch`
+
+Nothing will show up except a button letting you Request it be added to the index. Click that button and we are done!.
