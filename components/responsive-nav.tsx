@@ -28,12 +28,12 @@ export default function ResponsiveNav() {
           </Link>
         </li>
         <li key="GAME_JAMS">
-          <Link href="#" className="rts-button px-3 py-1 inline-block">
+          <Link href="/jams" className="rts-button px-3 py-1 inline-block">
             GAME_JAMS
           </Link>
         </li>
         <li key="MISC">
-          <Link href="#" className="rts-button px-3 py-1 inline-block">
+          <Link href="/misc" className="rts-button px-3 py-1 inline-block">
             MISC
           </Link>
         </li>
