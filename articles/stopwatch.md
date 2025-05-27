@@ -62,3 +62,27 @@ import(
 "github.com/hajimeohoshi/ebiten/v2"
 )
 ```
+
+Next we need a struct to represent our stopwatch:
+
+```go
+type Stopwatch struct {
+ currentTicks int
+ maxTicks     int
+ isActive     bool
+}
+```
+
+:
+
+We will build a factory function to build a new Stopwatch in an idiomatic way.
+
+```go
+func NewStopwatch(d *time.Duration) *Stopwatch {
+ return &Stopwatch{
+  currentTicks: 0,
+  maxTicks:     int(d.Milliseconds()) * ebiten.TPS() / 1000,
+  isActive:     false,
+ }
+}
+```
