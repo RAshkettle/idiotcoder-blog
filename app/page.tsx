@@ -10,6 +10,8 @@ export default function Home() {
   const articleCount = sortedArticles.length;
 
   const featuredPost = sortedArticles[0];
+  const nextPosts = [sortedArticles[1], sortedArticles[2]];
+  const placeholders = ["baseAtt.webp", "tanks.webp"];
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -93,44 +95,30 @@ export default function Home() {
           </div>
           <div className="rts-panel-inner p-4">
             <div className="grid gap-6">
-              {[1, 2, 3].map((post) => (
-                <article key={post} className="grid md:grid-cols-4 gap-4">
+              {nextPosts.map((post, index) => (
+                <article key={post.title} className="grid md:grid-cols-4 gap-4">
                   <div className="rts-screen aspect-video md:aspect-square overflow-hidden local-scanlines">
                     <img
-                      src={`/placeholder.svg?height=200&width=200&text=INTEL_${post}`}
-                      alt={`Post ${post} thumbnail`}
+                      src={placeholders[index]}
+                      alt={`Post ${post.title} thumbnail`}
                       className="w-full h-full object-cover z-10 relative"
                     />
                   </div>
                   <div className="md:col-span-3">
                     <h3 className="text-lg font-bold mb-2 text-amber-300">
-                      {post === 1 &&
-                        "Tactical Guide: Pixel-Perfect Collision Detection"}
-                      {post === 2 && "Command Center Setup: Tools and Software"}
-                      {post === 3 &&
-                        "Sound Engineering: Creating Authentic RTS Audio"}
+                      {post.title}
                     </h3>
                     <div className="flex items-center gap-4 text-xs text-amber-400/70 mb-2">
                       <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> {`10.${5 + post}.2023`}
+                        <Calendar className="w-3 h-3" /> {post.date}
                       </span>
                       <span className="flex items-center gap-1">
                         <Tag className="w-3 h-3" />
-                        {post === 1 && "TACTICAL"}
-                        {post === 2 && "EQUIPMENT"}
-                        {post === 3 && "COMMS"}
+                        {post.article_type}
                       </span>
                     </div>
-                    <p className="text-sm mb-2 line-clamp-2 text-amber-100">
-                      {post === 1 &&
-                        "&gt; TACTICAL REPORT: This guide outlines advanced collision detection strategies for your 2D games. Essential for creating responsive unit movement and combat..."}
-                      {post === 2 &&
-                        "&gt; EQUIPMENT MANIFEST: A complete breakdown of all hardware and software in my command center. From development environments to asset creation tools..."}
-                      {post === 3 &&
-                        "&gt; COMMUNICATIONS LOG: Creating authentic RTS sound effects and unit acknowledgments can significantly enhance player immersion. Here's my process..."}
-                    </p>
                     <Link
-                      href="#"
+                      href={`/${post.title}`}
                       className="rts-button-small px-2 py-1 inline-flex items-center gap-1"
                     >
                       ACCESS <ChevronRight className="w-3 h-3" />
