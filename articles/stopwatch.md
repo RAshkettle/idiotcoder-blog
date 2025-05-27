@@ -1,8 +1,8 @@
+---
 title: "Stopwatch"
 date: "05-27-2025"
 article_type: "TUTORIALS"
 categories: ["tools", "go", "tutorial"]
-
 ---
 
 # Stopwatch - A Timer implementation for Ebitengine
