@@ -1,10 +1,6 @@
 import CommanderProfile from "@/components/commander-profile";
 import Tags from "@/components/tags";
-import {
-  getArticlesByType,
-  getFirstWords,
-  getSortedArticles,
-} from "@/lib/articles";
+import { getFirstWords, getSortedArticles } from "@/lib/articles";
 import fs from "fs";
 import matter from "gray-matter";
 import { Calendar, ChevronRight, Gamepad2, Tag, User } from "lucide-react";
@@ -13,8 +9,8 @@ import path from "path";
 
 export default function Home() {
   const sortedArticles = getSortedArticles();
-  const groupedArticles = getArticlesByType();
   const articleCount = sortedArticles.length;
+  console.log(sortedArticles);
 
   const featuredPost = sortedArticles[0];
   const nextPosts = [sortedArticles[1], sortedArticles[2]].filter(Boolean);
