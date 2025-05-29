@@ -148,13 +148,15 @@ At this point, you should have your repo all set. If you look at mine, I've pret
 
 First thing first...we need to version it.
 
-```git tag v1.0.0
+```
+git tag v1.0.0
 
 ```
 
 Then push to origin
 
-```git push origin --tags
+```
+git push origin --tags
 
 ```
 
