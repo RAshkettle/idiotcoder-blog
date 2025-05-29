@@ -16,7 +16,12 @@ export default function ResponsiveNav() {
     setIsMenuOpen(false);
   };
 
-  const menuItems = ["TUTORIALS", "GAME_JAMS", "MISC", "ABOUT"];
+  const menuItems = [
+    { label: "TUTORIALS", href: "/tutorials" },
+    { label: "GAME_JAMS", href: "/jams" },
+    { label: "MISC", href: "/misc" },
+    { label: "ABOUT", href: "/about" },
+  ];
 
   return (
     <nav className="z-10">
@@ -77,13 +82,13 @@ export default function ResponsiveNav() {
             <div className="rts-panel-inner p-2">
               <ul className="space-y-2">
                 {menuItems.map((item) => (
-                  <li key={item}>
+                  <li key={item.label}>
                     <Link
-                      href="#"
+                      href={item.href}
                       className="rts-button px-3 py-2 block text-center w-full"
                       onClick={closeMenu}
                     >
-                      {item}
+                      {item.label}
                     </Link>
                   </li>
                 ))}
