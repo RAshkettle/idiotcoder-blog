@@ -10,7 +10,6 @@ import path from "path";
 export default function Home() {
   const sortedArticles = getSortedArticles();
   const articleCount = sortedArticles.length;
-  console.log(sortedArticles);
 
   const featuredPost = sortedArticles[0];
   const nextPosts = [sortedArticles[1], sortedArticles[2]].filter(Boolean);
