@@ -2274,3 +2274,257 @@ func (tm *TowerManager) DrawTowerTray(screen *ebiten.Image, params RenderParams,
 ```
 
 Run the game and you should see a Nothing icon and two towers. It's just images, so let's get them working.
+
+If we want to select a tower, we are going to need to pay for it in some resource. Otherwise it's not much of a game. Let's get the gold flowing like spice so we don't have to monkeypatch it in later.
+
+Let's say we start with 350 gold, towers will cost 75 each and we gain 1 gold every 2 seconds. We should also gain 2 gold when a creep is killed. No gold should be given if the creep escapes.
+
+With that, we can start. We can add these two fields to GameScene.
+
+```go
+	currentGold  int
+	goldTimer    *stopwatch.Stopwatch
+```
+
+Now in the constructor, we need a couple changes. In NewGameScene, at the very bottom, above where it spawns a new wave, change the code to read like this.
+
+```go
+	g.currentGold = 350
+	g.goldTimer = stopwatch.NewStopwatch(2 * time.Second)
+	g.goldTimer.Start()
+
+	g.spawnNewWave()
+	return g
+}
+```
+
+Now in GameScene go to the bottom of the Update function and add this right above where it returns nil.
+
+```go
+	g.goldTimer.Update()
+	if g.goldTimer.IsDone(){
+		g.currentGold++
+		g.goldTimer.Reset()
+	}
+```
+
+Now every two seconds we will add another gold onto our player. The last gold gain condition should be when a creep is killed. Let's wire up the callback for that.
+Head back into the NewGameScene function. Right above g.spawnNewWave() we are going to place the following code. It should be directly under where you start the gold timer.
+
+```go
+	g.creepManager.SetOnCreepKilled(func(goldReward int) {
+		g.currentGold += goldReward
+	})
+```
+
+This sets the callback function for when a creep dies. This is all we will do with this for now though, as we will be tying some of this in with the animations and waiting will be better in this case. So, we have ways of making gold. Let's display our Gold.
+Crack open `ui.go` and let's add a function to draw this. Of course, the font needs to scale.
+
+```go
+// DrawGoldDisplay renders the gold amount display
+func (ui *UIManager) DrawGoldDisplay(screen *ebiten.Image, params RenderParams, currentGold int) {
+	const healthBarX = 192.0
+	const healthBarY = 64.0
+	const labelOffset = 100.0
+
+	// Position below health bar
+	scaledX := healthBarX*params.Scale + params.OffsetX
+	scaledY := healthBarY*params.Scale + params.OffsetY + 40*params.Scale
+	labelX := scaledX - labelOffset*params.Scale
+
+	// Create scaled font
+	scaledFontFace := ui.createScaledFont(params.Scale)
+
+	// Create text draw options
+	goldOpts := &text.DrawOptions{}
+	goldOpts.GeoM.Translate(labelX, scaledY)
+	goldOpts.ColorScale.ScaleWithColor(color.White)
+
+	// Draw the gold text
+	goldText := fmt.Sprintf("Gold: %d", currentGold)
+	text.Draw(screen, goldText, scaledFontFace, goldOpts)
+}
+```
+
+We needed to pay attention to our healthbar, as we are working relative to it. I could probably hard code less, but I'm too lazy and I choose which battles I wish to fight.
+In GameScene.go, look at Draw and scroll down to the very bottom. We will append this to the bottom of that function.
+
+```go
+g.uiManager.DrawGoldDisplay(screen,params,g.currentGold)
+```
+
+Run the application and we can see our gold! Now let's use that gold to purchase some towers.
+We are going to make all towers cost 75 gold. Open tower_manager and at right under the imports, add this.
+
+```go
+const towerCost = 75
+```
+
+Next we want to handle tower selection in the tray. We have to take scaliing into account for which tower we are over. Put this in your tower manager.
+
+```go
+// HandleTowerSelection handles clicks on the tower tray
+func (tm *TowerManager) HandleTowerSelection(level *TilemapJSON, currentGold int, params RenderParams) (bool, int) {
+	if !inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		return false, 0
+	}
+
+	mouseX, mouseY := ebiten.CursorPosition()
+
+	// Check if click is in the tray area
+	if float64(mouseX) < params.TrayX || mouseX > params.ScreenWidth {
+		return false, 0
+	}
+
+	// Calculate which tower was clicked
+	const baseTowerSpacing = 140.0 // Updated to match drawTowerOptions
+	const baseTowerStartY = 20.0
+	const baseTowerHeight = 128.0
+
+	scaledTowerSpacing := baseTowerSpacing * params.Scale
+	scaledTowerStartY := baseTowerStartY * params.Scale
+	scaledTowerHeight := baseTowerHeight * params.Scale
+
+	relativeY := float64(mouseY) - scaledTowerStartY
+	if relativeY < 0 {
+		return false, 0
+	}
+
+	towerIndex := int(relativeY / scaledTowerSpacing)
+	if towerIndex < 0 || towerIndex >= len(tm.towers) {
+		return false, 0
+	}
+
+	// Check if click is within tower area only (not in button area)
+	towerOffset := relativeY - float64(towerIndex)*scaledTowerSpacing
+
+	// Only select tower if click is within tower image area, not button area
+	if towerOffset < 0 || towerOffset > scaledTowerHeight {
+		return false, 0
+	}
+
+	// Don't allow selection of towers (except "none") if player can't afford them
+	if towerIndex > 0 && currentGold < towerCost {
+		return false, 0 // Not enough gold to select tower
+	}
+
+	// Tower selected successfully
+	return true, towerIndex
+}
+```
+
+Now we need to store the selected tower. Go to your GameScene and add.
+
+```go
+selectedTower int
+```
+
+Since it defaults to 0, which is also the No Tower option, we dont need to do anything more for that.
+In GameScene, at the end of your Update function, again right above the return, place this.
+
+```go
+// Use the logical screen size from Layout() instead of actual window size
+	dummyImageForParams := ebiten.NewImage(1920, 1280) // Use the same dimensions as Layout()
+	inputParams := g.renderer.CalculateRenderParams(dummyImageForParams, g.level)
+
+	// Handle tower selection input
+	if clicked, towerIndex := g.towerManager.HandleTowerSelection(g.level, g.currentGold, inputParams); clicked {
+		g.selectedTower = towerIndex
+	}
+```
+
+Now still in GameScene, go to the bottom of the Draw function and look for this line.
+
+```go
+	g.towerManager.DrawTowerTray(screen, params, 0, g.uiManager)
+```
+
+That 0 was ok for the moment, but we need to make it real now.
+
+```go
+	g.towerManager.DrawTowerTray(screen, params, g.selectedTower, g.uiManager)
+
+```
+
+Then, right under, look for DrawGoldDisplay is being called. Put this right after that call.
+
+```go
+	g.towerManager.DrawPlacementIndicator(screen,params,g.selectedTower,g.level)
+
+```
+
+Now to do our drawing, we need to convert our screen coordinates to grid coordinates.
+
+```go
+// screenToGrid converts screen coordinates to grid coordinates
+func (tm *TowerManager) screenToGrid(screenX, screenY int, params RenderParams) (int, int) {
+	const tileSize = 64
+
+	// Convert screen position to map-relative position
+	mapX := float64(screenX) - params.OffsetX
+	mapY := float64(screenY) - params.OffsetY
+
+	// Convert to grid coordinates
+	gridX := int(mapX / (float64(tileSize) * params.Scale))
+	gridY := int(mapY / (float64(tileSize) * params.Scale))
+
+	return gridX, gridY
+}
+```
+
+With this, we can now show our selected Tower.
+
+```go
+// DrawPlacementIndicator renders the tower image following the cursor
+func (tm *TowerManager) DrawPlacementIndicator(screen *ebiten.Image, params RenderParams, selectedTowerID int, level *TilemapJSON) {
+	if selectedTowerID > 0 && selectedTowerID < len(tm.towers) {
+		mouseX, mouseY := ebiten.CursorPosition()
+		ebiten.SetCursorMode(ebiten.CursorModeHidden)
+
+		towerImg := tm.towers[selectedTowerID]
+		if towerImg != nil && level != nil { // Ensure level is not nil
+			gridX, gridY := tm.screenToGrid(mouseX, mouseY, params)
+			// Corrected placement check:
+			//This is temporary.  For now, all tiles will be invalid
+			//TODO:  Change this logic...
+			canPlace := false
+			// World coordinates of the target tile's center
+			tileCenterX_world := float64(gridX*level.TileWidth + level.TileWidth/2)
+			tileCenterY_world := float64(gridY*level.TileHeight + level.TileHeight/2)
+
+			imgUnscaledWidth := float64(towerImg.Bounds().Dx())
+			imgUnscaledHeight := float64(towerImg.Bounds().Dy())
+
+			// Top-left corner for drawing (world coordinates), to achieve bottom-center placement
+			drawX_world := tileCenterX_world - (imgUnscaledWidth / 2)
+			drawY_world := tileCenterY_world - imgUnscaledHeight // Bottom of image at tileCenterY_world
+
+			indicatorOpts := &ebiten.DrawImageOptions{}
+			indicatorOpts.GeoM.Scale(params.Scale, params.Scale)
+			indicatorOpts.GeoM.Translate(
+				drawX_world*params.Scale+params.OffsetX,
+				drawY_world*params.Scale+params.OffsetY,
+			)
+
+			if canPlace {
+				indicatorOpts.ColorScale.Scale(0.8, 1.0, 0.8, 0.5) // Greenish tint for valid
+			} else {
+				indicatorOpts.ColorScale.Scale(1.0, 0.5, 0.5, 0.5) // Reddish tint for invalid
+			}
+			screen.DrawImage(towerImg, indicatorOpts)
+		} else if towerImg != nil && level == nil {
+			// Fallback: Draw at cursor if level info is missing (should not happen in normal flow)
+			indicatorOpts := &ebiten.DrawImageOptions{}
+			indicatorOpts.GeoM.Scale(params.Scale, params.Scale)
+			// Basic centering on cursor
+			indicatorOpts.GeoM.Translate(float64(mouseX)-float64(towerImg.Bounds().Dx())*params.Scale/2, float64(mouseY)-float64(towerImg.Bounds().Dy())*params.Scale/2)
+			screen.DrawImage(towerImg, indicatorOpts)
+		}
+	} else {
+		ebiten.SetCursorMode(ebiten.CursorModeVisible)
+	}
+}
+
+```
+
+Now when you click on a tower, your cursor is replaced by a semi-transparent version of the tower. It's shaded red because we are telling it there are no valid placements at the moment. We will fix that next.
