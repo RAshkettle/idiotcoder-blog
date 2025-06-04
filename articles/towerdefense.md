@@ -2953,3 +2953,270 @@ g.towerManager.UpdateBuildingAnimations(deltaTime)
 Now run the game. When you click to place a tower, you get a little animation of it being built then a nice transition animation.
 
 So, what's left? We need to add weapons and their projectiles. Then we need collision. After that, death for creeps. Once we have that, I think we have the bones of a real game. Let's get those weapons up and running.
+
+First we are going to need some constants for how the weapons should react.
+
+```go
+const weaponRotationSpeed = 3.0      // Radians per second for weapon rotation
+const weaponRotationSmoothness = 8.0 // Higher values = smoother but slower rotation
+const towerRange = 5.0               // Range in tiles for tower attacks
+const fireDelay = 1.5                // Seconds between shots
+const fireAnimationDuration = 0.5    // Duration of firing animation
+```
+
+Then we need to add some fields to PlacedTower
+
+```go
+type PlacedTower struct {
+	Image   *ebiten.Image
+	X       int // Grid position X
+	Y       int // Grid position Y
+	TowerID int // Which tower type (index in towers array)
+	Damage          float64
+	WeaponImage     *ebiten.Image   // Image for the tower's weapon, if any
+	WeaponAngle     float64         // Current angle of the weapon in radians. 0 = East, -PI/2 = North.
+	FireTimer       float64         // Time remaining before weapon can fire again
+	FiringAnimation *AnimatedSprite // Current firing animation, if any
+	IdleAnimation   *AnimatedSprite // Idle animation for weapons that have one
+	WeaponFired     bool            // Flag to indicate if weapon has been fired and needs to spawn a projectile
+	TargetX         float64         // X position of target when weapon was fired
+	TargetY         float64         // Y position of target when weapon was fired
+}
+```
+
+PlaceTower needs to be edited to add these fields too.
+
+```go
+func (tm *TowerManager) placeTower(col, row int, towerID int) {
+	towerImg := tm.getTowerImage(towerID)
+	if towerImg == nil {
+		return // Invalid tower ID
+	}
+	newTower := PlacedTower{
+		Image:   towerImg,
+		X:       col,
+		Y:       row,
+		TowerID: towerID,
+		Damage:          50,
+		WeaponAngle:     -math.Pi / 2, // Initialize weapon angle to North (upwards)
+		FireTimer:       0.0,          // Ready to fire immediately
+		FiringAnimation: nil,          // No firing animation initially
+		IdleAnimation:   nil,          // No idle animation initially
+		WeaponFired:     false,        // Initialize WeaponFired to false
+	}	// If it's BallistaTower (ID from ballista_tower.go), add its static weapon image
+	if towerID == BallistaTowerID && len(assets.BallistaWeaponFire) > 0 {
+		newTower.WeaponImage = assets.BallistaWeaponFire[0]
+	}
+
+	// If it's Magic Tower (ID from magic_tower.go), add its idle animation and initial weapon image
+	if towerID == MagicTowerID && len(assets.MagicTowerWeaponIdleAnimation) > 0 {
+		newTower.WeaponImage = assets.MagicTowerWeaponIdleAnimation[0]
+		// Create and start the looping idle animation
+		newTower.IdleAnimation = NewAnimatedSprite(assets.MagicTowerWeaponIdleAnimation, 1.0, true) // 1 second duration, looping
+		newTower.IdleAnimation.Play()
+	}
+
+	tm.placedTowers = append(tm.placedTowers, newTower)
+}
+```
+
+Now go to the Draw function of your TowerManager. Right under our DrawImage call at the end of the function, add this:
+
+```go
+		// WEAPON RENDERING (if tower has a weapon)
+		// Weapons are optional overlay sprites that can be static or animated
+		if tower.WeaponImage != nil {
+			// DETERMINE WHICH WEAPON SPRITE TO USE
+			// The weapon sprite depends on the tower's current state:
+			// - Firing animation (if actively shooting)
+			// - Idle animation (if has animated weapon when not shooting)
+			// - Static weapon image (fallback for non-animated weapons)
+			var weaponImg *ebiten.Image
+			if tower.FiringAnimation != nil && tower.FiringAnimation.IsPlaying() {
+				// Tower is currently firing - use firing animation frame
+				weaponImg = tower.FiringAnimation.GetCurrentFrame()
+			} else if tower.IdleAnimation != nil && tower.IdleAnimation.IsPlaying() {
+				// Tower has idle animation (like magic tower) - use idle frame
+				weaponImg = tower.IdleAnimation.GetCurrentFrame()
+			} else {
+				// Use static weapon image (for towers without animations)
+				weaponImg = tower.WeaponImage
+			}
+
+			// RENDER THE WEAPON (if we have a valid sprite)
+			if weaponImg != nil {
+				// Get weapon sprite dimensions
+				w, h := weaponImg.Bounds().Dx(), weaponImg.Bounds().Dy()
+
+				// Calculate tower center for weapon positioning reference
+				tileCenterX := float64(tower.X*level.TileWidth + level.TileWidth/2)
+				tileCenterY := float64(tower.Y*level.TileHeight + level.TileHeight/2)
+
+				// Create transformation matrix for weapon positioning
+				optsWeapon := &ebiten.DrawImageOptions{}
+
+				// TOWER-TYPE-SPECIFIC WEAPON POSITIONING
+				// Different tower types position their weapons differently:
+				if tower.TowerID == MagicTowerID {
+					// MAGIC TOWER WEAPON POSITIONING:
+					// - Weapon stays fixed (no rotation)
+					// - Positioned at a specific offset from tower's top-left corner
+					// - Magic towers have floating orbs that don't track targets
+
+					weaponCenterX_local := float64(w) / 2.0    // Weapon's center point X
+					weaponBottomY_local := float64(h)          // Weapon's bottom edge Y
+
+					// Calculate tower's top-left corner in world coordinates
+					towerTopLeftX := float64(tower.X * level.TileWidth)
+					towerTopLeftY := float64(tower.Y * level.TileHeight)
+
+					// Position weapon at fixed offset from tower (magic orb positioning)
+					weaponAnchorX_world := towerTopLeftX + 32.0     // 32 pixels right of tower corner
+					weaponAnchorY_world := towerTopLeftY            // At tower's top edge
+
+					// Apply transformations:
+					// 1. Move weapon's anchor point (center-bottom) to origin for positioning
+					optsWeapon.GeoM.Translate(-weaponCenterX_local, -weaponBottomY_local)
+					// 2. NO rotation for magic towers - weapons stay stationary
+					// 3. Move weapon to its final position relative to tower
+					optsWeapon.GeoM.Translate(weaponAnchorX_world, weaponAnchorY_world)
+				} else {
+					// DEFAULT WEAPON POSITIONING (Ballista and other rotating weapons):
+					// - Weapon rotates to track targets
+					// - Positioned at center of tower base
+					// - Rotation pivot is weapon's center point
+
+					weaponCenterX_local := float64(w) / 2.0    // Weapon's center point X
+					weaponCenterY_local := float64(h) / 2.0    // Weapon's center point Y
+
+					// Position weapon at the center of the tower base (not the sprite center)
+					towerBaseCenterX_world := tileCenterX
+					towerBaseCenterY_world := tileCenterY - (imgHeight / 2.0) // Center of tower base
+
+					// Apply transformations for rotating weapons:
+					// 1. Move weapon's rotation pivot (center) to origin
+					optsWeapon.GeoM.Translate(-weaponCenterX_local, -weaponCenterY_local)
+					// 2. Rotate weapon around origin to point toward target
+					//    Note: We add π/2 to correct for sprite orientation (weapons point up by default)
+					correctedAngle := tower.WeaponAngle + math.Pi/2
+					optsWeapon.GeoM.Rotate(correctedAngle)
+					// 3. Move rotated weapon to be centered on the tower base
+					optsWeapon.GeoM.Translate(towerBaseCenterX_world, towerBaseCenterY_world)
+				}
+
+				// APPLY GLOBAL TRANSFORMATIONS
+				// Convert weapon from world coordinates to screen coordinates
+				optsWeapon.GeoM.Scale(params.Scale, params.Scale)       // Apply camera zoom
+				optsWeapon.GeoM.Translate(params.OffsetX, params.OffsetY) // Apply camera offset
+
+				// Draw the weapon sprite
+				screen.DrawImage(weaponImg, optsWeapon)
+			}
+		}
+```
+
+This function fragment has been over-documented to help you follow it.
+Now when you run the application, you can see the towers have weapons. Now let's finish wiring the code that will have the weapons follow to face the enemies.
+
+Create a function called UpdatePlacedTowers. This will handle all the logic of rotating our tower's weapon to face the nearest enemy.
+
+```go
+func (tm *TowerManager) UpdatePlacedTowers(deltaTime float64, activeCreeps []*Creep) {
+	for i := range tm.placedTowers {
+		tower := &tm.placedTowers[i]
+
+
+		// Update idle animation if it exists
+		if tower.IdleAnimation != nil {
+			tower.IdleAnimation.Update(deltaTime)
+		}
+
+		var nearestCreep *Creep
+		minDistSq := math.MaxFloat64
+
+		// Tower's center in tile coordinates
+		towerCenterX := float64(tower.X) + 0.5 // Add 0.5 to get center of tile
+		towerCenterY := float64(tower.Y) + 0.5
+
+		for _, creep := range activeCreeps {
+			if creep == nil || !creep.IsActive() {
+				continue
+			}
+
+			// Creep coordinates are already in tile coordinates
+			creepX := creep.X
+			creepY := creep.Y
+
+			dx := creepX - towerCenterX
+			dy := creepY - towerCenterY
+			distSq := dx*dx + dy*dy
+
+			if distSq < minDistSq {
+				minDistSq = distSq
+				nearestCreep = creep
+			}
+		}
+
+		if nearestCreep != nil {
+			// Skip weapon rotation for Magic Tower (it should remain stationary)
+			if tower.TowerID != MagicTowerID {
+				// Calculate angle to target (both in tile coordinates)
+				dx := nearestCreep.X - towerCenterX
+				dy := nearestCreep.Y - towerCenterY
+				targetAngle := math.Atan2(dy, dx)
+
+				currentAngle := tower.WeaponAngle
+
+				// Calculate the shortest angular distance
+				deltaAngle := targetAngle - currentAngle
+
+				// Normalize angle difference to [-π, π]
+				for deltaAngle > math.Pi {
+					deltaAngle -= 2 * math.Pi
+				}
+				for deltaAngle < -math.Pi {
+					deltaAngle += 2 * math.Pi
+				}
+
+				maxRotation := weaponRotationSpeed * deltaTime
+
+				// Use smooth interpolation for more fluid rotation
+				// Calculate rotation step with smoothing factor
+				rotationStep := deltaAngle * weaponRotationSmoothness * deltaTime
+
+				// Clamp the rotation step to maximum rotation speed
+				if math.Abs(rotationStep) > maxRotation {
+					if rotationStep > 0 {
+						rotationStep = maxRotation
+					} else {
+						rotationStep = -maxRotation
+					}
+				}
+
+				// Apply the smooth rotation step
+				tower.WeaponAngle += rotationStep
+
+				// Normalize weapon angle to [-π, π]
+				for tower.WeaponAngle > math.Pi {
+					tower.WeaponAngle -= 2 * math.Pi
+				}
+				for tower.WeaponAngle < -math.Pi {
+					tower.WeaponAngle += 2 * math.Pi
+				}
+			}
+		}
+	}
+}
+```
+
+Then it's back to GameScene and adding this to the Update method (right after where we call HandleTowerPlacement)
+
+```go
+g.towerManager.UpdatePlacedTowers(deltaTime,g.creepManager.creeps)
+```
+
+Now you will see the tower weapon will rotate to face the nearest creep.
+
+ALMOST THERE! We need to add projectiles and collision and that's a game!
+
+So..projectiles...
