@@ -15,7 +15,7 @@ export default function ScanlineToggle() {
   }, []);
 
   useEffect(() => {
-    // Apply/remove scanlines
+    // Apply/remove scanlines based on user preference
     const body = document.body;
     if (scanlinesEnabled) {
       body.classList.add("crt-effects");

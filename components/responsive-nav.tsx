@@ -20,6 +20,7 @@ export default function ResponsiveNav() {
     { label: "TUTORIALS", href: "/tutorials" },
     { label: "GAME_JAMS", href: "/jams" },
     { label: "MISC", href: "/misc" },
+    { label: "GAMES", href: "/games/tower-defender" },
     { label: "ABOUT", href: "/about" },
   ];
 
@@ -40,6 +41,11 @@ export default function ResponsiveNav() {
         <li key="MISC">
           <Link href="/misc" className="rts-button px-3 py-1 inline-block">
             MISC
+          </Link>
+        </li>
+        <li key="GAMES">
+          <Link href="/games" className="rts-button px-3 py-1 inline-block">
+            GAMES
           </Link>
         </li>
         <li key="ABOUT">

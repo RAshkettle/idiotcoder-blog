@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>WASM Test</title>
+  </head>
+  <body>
+    <h1>Testing WASM Loading</h1>
+    <div id="output"></div>
+    <script src="/wasm_exec.js"></script>
+    <script>
+      const output = document.getElementById("output");
+
+      function log(msg) {
+        console.log(msg);
+        output.innerHTML += msg + "<br>";
+      }
+
+      async function testWasm() {
+        try {
+          log("Starting WASM test...");
+
+          if (!window.Go) {
+            log("ERROR: Go is not available");
+            return;
+          }
+
+          log("Creating Go instance...");
+          const go = new window.Go();
+
+          log("Fetching WASM file...");
+          const response = await fetch("/towerDefender.wasm");
+          if (!response.ok) {
+            log(`ERROR: Failed to fetch WASM: ${response.status}`);
+            return;
+          }
+
+          log("Converting to ArrayBuffer...");
+          const bytes = await response.arrayBuffer();
+          log(`WASM file size: ${bytes.byteLength} bytes`);
+
+          log("Attempting to instantiate...");
+          try {
+            const result = await WebAssembly.instantiate(
+              bytes,
+              go.importObject
+            );
+            log("SUCCESS: WASM instantiated successfully");
+
+            log("Attempting to run Go program...");
+            go.run(result.instance);
+            log("Go program started");
+          } catch (instantiateError) {
+            log(`ERROR during instantiation: ${instantiateError.message}`);
+            log(`Full error: ${instantiateError.toString()}`);
+          }
+        } catch (error) {
+          log(`ERROR: ${error.message}`);
+        }
+      }
+
+      // Wait for page to load, then test
+      window.addEventListener("load", testWasm);
+    </script>
+  </body>
+</html>

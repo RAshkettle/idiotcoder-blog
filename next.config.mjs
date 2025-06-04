@@ -49,6 +49,15 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: "/(.*\\.wasm)",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "application/wasm",
+          },
+        ],
+      },
     ];
   },
 };
