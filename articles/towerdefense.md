@@ -7,7 +7,7 @@ categories: ["go", "tutorial"]
 
 # Tower Defense - Creating a Tower Defense game with Ebitengine
 
-This tutorial will go through all the steps for you to start building your own tower defense game. In the end we will have a basic but fully functional game that you can then expand into your own.
+This tutorial will go through all the steps for you to start building your own tower defense game. In the end we will have a basic but fully functional game that you can then expand into your own. Note: This tutorial got very long, so I decided not to add sounds. I'll be creating a small tutorial to show how to load sounds and music to your games.
 
 This will be a very long tutorial, so we are going to begin with a fully loaded map. For learning how to load a Tiled Map (using this exact map), follow [this tutorial](https://www.idiotcoder.com/tiled) on loading a map from Tiled and displaying it on the screen.  
 Clone the [repo](https://github.com/RAshkettle/Tile-tutorial) and build it. We should all see this image below to start.
