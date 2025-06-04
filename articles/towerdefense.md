@@ -657,7 +657,7 @@ var BallistaTower = getFirstTower(ballistaTowerSpriteSheet) // Renamed from towe
 var MagicTower = getFirstTower(magicTowerSpriteSheet)
 
 var towerBuildSpriteSheet = loadImage("towers/Tower Construction.png")
-var TowerBuildAnimation1 = loadAnimation(towerBuildSpriteSheet, 0, 6, 192, 256)
+var TowerBuildAnimation = loadAnimation(towerBuildSpriteSheet, 0, 6, 192, 256)
 var TowerTransitionAnimation = loadAnimation(towerBuildSpriteSheet, 1, 5, 192, 256)
 
 var magicTowerWeaponSpriteSheet = loadImage("towers/Tower 05 - Level 01 - Weapon.png")
@@ -2781,16 +2781,175 @@ g.towerManager.DrawPlacedTowers(screen, params, g.level)
 Now run the game and it's drawing towers happily until you run out of gold. Of course, we have another bug. You can draw towers directly on top of each other. Let's fix this.
 In `tower_manager.go` look for the isTileBuildable function. Right near the top (it doesn't matter where, I put it right after the inner bounds check), add the following check.
 
-````go
+```go
 		// Check if there's already a tower at this position
 		for _, placedTower := range tm.placedTowers {
 			if placedTower.X == col && placedTower.Y == row {
 				return false
 			}
 		}
-	```
-	That's it.  Run the program again and you can no longer place a tower on top of a tower.
+```
 
-	The tower placement is working, but let's be a little better with it and add a building animation.
+Now you can no longer place towers one on top of another. Things are starting to come together. However, we need a little visual flair. Let's add a building animation for the tower, along with a little delay.
 
-````
+Start by adding two more constants to the top of our `tower_manager.go`
+
+```go
+	StageBuilding      = 0
+	StageTransitioning = 1
+```
+
+Then add this to the TowerManager
+
+```go
+buildingAnimations   []*BuildingAnimationState
+```
+
+This means we will need to create a BuildingAnimationState struct. Let's do it now.
+
+```go
+// BuildingAnimationState holds the state for a tower being built
+type BuildingAnimationState struct {
+	X, Y             int
+	TowerIDToPlace   int
+	CurrentAnimation *AnimatedSprite
+	Stage            int // 0 for build, 1 for transition
+}
+```
+
+Edit the TowerManager factory to accept this new slice.
+
+```go
+func NewTowerManager() *TowerManager {
+	return &TowerManager{
+		towers: []*ebiten.Image{
+			assets.NoneIndicator,
+			assets.BallistaTower,
+			assets.MagicTower,
+		},
+		placedTowers: make([]PlacedTower, 0),
+		buildingAnimations:   make([]*BuildingAnimationState, 0),
+	}
+}
+```
+
+Go to HandleTowerPlacement and find this
+
+```go
+	tm.placeTower(gridX, gridY, selectedTowerID)
+```
+
+Replace it with this
+
+```go
+tm.startBuildingAnimation(gridX, gridY, selectedTowerID)
+```
+
+Instead of just placing the tower, we are placing a set of animations between clicking for placement and the actual placement. Let's put in the function we just called.
+
+```go
+// startBuildingAnimation starts the building animation for a tower at the specified grid position
+func (tm *TowerManager) startBuildingAnimation(col, row int, towerID int) {
+	// Create a new building animation state
+	buildingAnimation := &BuildingAnimationState{
+		X:              col,
+		Y:              row,
+		TowerIDToPlace: towerID,
+		Stage:          StageBuilding,
+		CurrentAnimation: NewAnimatedSprite(assets.TowerBuildAnimation, 1.0, false), // 1 second for build animation
+	}
+
+	// Start the animation
+	buildingAnimation.CurrentAnimation.Play()
+
+	// Add to the building animations slice
+	tm.buildingAnimations = append(tm.buildingAnimations, buildingAnimation)
+}
+```
+
+Now we just need to update the animations and draw them. Let's add Update first.
+
+```go
+// UpdateBuildingAnimations updates all towers currently in their build/transition animation
+func (tm *TowerManager) UpdateBuildingAnimations(deltaTime float64) {
+	updatedAnimations := make([]*BuildingAnimationState, 0, len(tm.buildingAnimations))
+	for _, ba := range tm.buildingAnimations {
+		if ba.CurrentAnimation != nil {
+			ba.CurrentAnimation.Update(deltaTime)
+			if !ba.CurrentAnimation.IsPlaying() {
+				if ba.Stage == StageBuilding {
+					// Transition to the next animation
+					ba.Stage = StageTransitioning
+					// Assuming animationLength of 0.75 second for transition, adjust as needed
+					ba.CurrentAnimation = NewAnimatedSprite(assets.TowerTransitionAnimation, 0.75, false) // Adjusted duration
+					ba.CurrentAnimation.Play()
+					updatedAnimations = append(updatedAnimations, ba) // Keep it for next stage
+				} else if ba.Stage == StageTransitioning {
+					// Animation finished, place the actual tower
+					tm.placeTower(ba.X, ba.Y, ba.TowerIDToPlace)
+					// Do not add to updatedAnimations, effectively removing it
+				}
+			} else {
+				updatedAnimations = append(updatedAnimations, ba) // Animation still playing
+			}
+		}
+	}
+	tm.buildingAnimations = updatedAnimations
+}
+```
+
+The above function plays the build animation until its complete, then it triggers the transition animation. When that completes, it removes the animation and the tower is placed.
+Lastly, we need to draw the animations...
+
+```go
+// DrawBuildingAnimations draws all towers currently in their build/transition animation
+func (tm *TowerManager) DrawBuildingAnimations(screen *ebiten.Image, params RenderParams, level *TilemapJSON) {
+	if level == nil { // Guard against nil level
+		return
+	}
+	const finalTowerSpriteHeight = 128.0 // Height of the final tower sprites
+
+	for _, ba := range tm.buildingAnimations {
+		if ba.CurrentAnimation != nil {
+			frame := ba.CurrentAnimation.GetCurrentFrame()
+			if frame != nil {
+				opts := &ebiten.DrawImageOptions{}
+				imgWidth := float64(frame.Bounds().Dx())  // Animation frame width
+				imgHeight := float64(frame.Bounds().Dy()) // Animation frame height
+
+				// Calculate the center of the target grid cell in world coordinates
+				tileCenterX := float64(ba.X*level.TileWidth + level.TileWidth/2)
+				tileCenterY := float64(ba.Y*level.TileHeight + level.TileHeight/2)
+
+				// Calculate screenX to center the animation frame horizontally on the tile's center.
+				screenX := tileCenterX - (imgWidth / 2.0)
+
+				// Calculate screenY to align the visual center of the animation frame
+				// with the visual center of the final tower sprite.
+				screenY := tileCenterY - (finalTowerSpriteHeight+imgHeight)/2.0
+
+				opts.GeoM.Scale(params.Scale, params.Scale)
+				opts.GeoM.Translate(screenX*params.Scale+params.OffsetX, screenY*params.Scale+params.OffsetY)
+				screen.DrawImage(frame, opts)
+			}
+		}
+	}
+}
+```
+
+The only thing left to do to get this all wired in is to make changes in Update and Draw in our GameScene to call these functions.
+In Draw, find where you are drawing all the components. Anywhere in there, you can put this line.
+
+```go
+g.towerManager.DrawBuildingAnimations(screen, params, g.level)
+```
+
+Next Update. Find where we update the CreepManager. That's a pretty decent spot (exact spot in this method doesn't matter for this). Add this line.
+
+```go
+g.towerManager.UpdateBuildingAnimations(deltaTime)
+```
+
+Now run the game. When you click to place a tower, you get a little animation of it being built then a nice transition animation.
+
+So, what's left? We need to add weapons and their projectiles. Then we need collision. After that, death for creeps. Once we have that, I think we have the bones of a real game. Let's get those weapons up and running.
