@@ -2528,3 +2528,269 @@ func (tm *TowerManager) DrawPlacementIndicator(screen *ebiten.Image, params Rend
 ```
 
 Now when you click on a tower, your cursor is replaced by a semi-transparent version of the tower. It's shaded red because we are telling it there are no valid placements at the moment. We will fix that next.
+In `tower_manager.go` Let's add a function to return whether or not a tile is available for building a tower.
+
+```go
+// isTileBuildable checks if a tile at given grid coordinates is buildable
+func (tm *TowerManager) isTileBuildable(col, row int, level *TilemapJSON) bool {
+	// Check if position is within map bounds
+	if col < 0 || row < 0 {
+		return false
+	}
+ //Inner bounds checked ok, now check outer bounds
+	layer := level.Layers[0]
+	if col >= layer.Width || row >= layer.Height {
+		return false
+	}
+
+	// Water Tiles, and Details Tiles and Road Tiles should be un-buildable.
+	//So any tiles that aren't empty on those two layers should return false
+	//All other tiles (grass) are buildable
+	for _, layer := range level.Layers {
+		index := row*layer.Width + col
+		if index >= 0 && index < len(layer.Data) {
+			tileID := layer.Data[index]
+
+			// Skip empty tiles
+			if tileID == 0 {
+				continue
+			}
+
+			// Remove flip flags to get actual tile ID
+			actualTileID := tileID &^ flipMask
+
+			// Check if it's a water tile (cannot place towers on water)
+			if actualTileID >= waterFirstTileIDLocal {
+				return false
+			}
+
+			// Check if it's a details layer tile (cannot place towers on details)
+			if layer.Name == "details" {
+				return false
+			}
+		}
+	}
+
+	return true
+}
+```
+
+You will notice we need a couple values (the id of the first water tile and the masks for flipping tiles). Let's change our const declaration at the top to read this.
+
+```go
+const (
+	waterFirstTileIDLocal = 257
+	flipMask              = 0x80000000 | 0x40000000 | 0x20000000
+	towerCost             = 75 // Cost to place a tower
+)
+```
+
+It's "working" but not completely. There is an obvious bug in tower placement. Where the tower is "hovering" isn't necessarily where it's going to be painted. We have an offset issue. Let's fix it.
+The bug is in our Draw function.
+Right above the loop, under the tileSize definition, place these two lines.
+
+```go
+	dummyImageForParams := ebiten.NewImage(1920, 1280) // Use the same dimensions as Layout()
+	params := g.renderer.CalculateRenderParams(dummyImageForParams, g.level)
+
+```
+
+This gives us a common dimension for our scaling.
+Then in the bottom of the loop (but inside it), right under where we defiine screenX and screenY, change to this.
+
+```go
+						// Draw the tile with proper scaling and offset
+						opts := &ebiten.DrawImageOptions{}
+						opts.GeoM.Scale(params.Scale, params.Scale)
+						opts.GeoM.Translate(screenX*params.Scale+params.OffsetX, screenY*params.Scale+params.OffsetY)
+						screen.DrawImage(tileImage, opts)
+```
+
+The offset bug should be fixed and things should be working just fine now. And at the bottom where we redeclare params, delete that line. We were calculating params and using it all outside the map. This gives us a visual bug in what we saw on the map drawing. To be completely honest, I'm wondering if keeping this grid-based was the best solution I could have done, but here we are. It's an area to experiment with.
+
+But cool, now let's get around to placing towers.
+
+Let's open up `tower_manager.go` and do some work.
+
+First, let's add some constants at the top of the file under the imports.
+
+```go
+const (
+	BallistaTowerID = 1
+	MagicTowerID    = 2
+)
+```
+
+This just helps us determine which tower is selected. Easily expandable.
+Then edit the TowerManager to hold our placed towers and create the PlacedTower struct to hold the data for each tower.
+
+```go
+type TowerManager struct {
+	towers       []*ebiten.Image
+	placedTowers []PlacedTower
+}
+// PlacedTower represents a tower that has been placed on the map
+type PlacedTower struct {
+	Image   *ebiten.Image
+	X       int // Grid position X
+	Y       int // Grid position Y
+	TowerID int // Which tower type (index in towers array)
+}
+```
+
+As expected, we need to edit the factory.
+
+```go
+func NewTowerManager() *TowerManager {
+	return &TowerManager{
+		towers: []*ebiten.Image{
+			assets.NoneIndicator,
+			assets.BallistaTower,
+			assets.MagicTower,
+		},
+		placedTowers: make([]PlacedTower, 0),
+	}
+}
+```
+
+Now let us create some helper functions.
+The first will simply get the image for the requested tower.
+
+```go
+func (tm *TowerManager) getTowerImage(towerID int) *ebiten.Image {
+	switch towerID {
+	case BallistaTowerID:
+		return assets.BallistaTower
+	case MagicTowerID:
+		return assets.MagicTower
+	default:
+		return nil
+	}
+}
+```
+
+Next, for when we want to, we should create the code to add a new placed tower. This will get called after all validity checks have passed.
+
+```go
+func (tm *TowerManager) placeTower(col, row int, towerID int) {
+	towerImg := tm.getTowerImage(towerID)
+	if towerImg == nil {
+		return // Invalid tower ID
+	}
+	newTower := PlacedTower{
+		Image:   towerImg,
+		X:       col,
+		Y:       row,
+		TowerID: towerID,
+	}
+
+	tm.placedTowers = append(tm.placedTowers, newTower)
+}
+```
+
+These helpers get called by the next function we will be writing. HandleTowerPlacement should be the wrapper that checks for the validity of the tile for placement and checks to see if the player has enough gold. This will be called in an update function.
+
+```go
+// HandleTowerPlacement handles clicks on the map to place towers
+func (tm *TowerManager) HandleTowerPlacement(selectedTowerID int, level *TilemapJSON, params RenderParams, currentGold *int) {
+	if selectedTowerID == 0 || level == nil { // No tower selected or level is nil
+		return
+	}
+
+	mouseX, mouseY := ebiten.CursorPosition()
+
+	// Convert screen coordinates to map grid coordinates
+	// Use level.TileWidth and level.TileHeight for tile dimensions
+	gridX := int((float64(mouseX) - params.OffsetX) / (float64(level.TileWidth) * params.Scale))
+	gridY := int((float64(mouseY) - params.OffsetY) / (float64(level.TileHeight) * params.Scale))
+
+	// Check if click is within map bounds (considering tray)
+	mapPixelWidth := float64(level.Layers[0].Width*level.TileWidth) * params.Scale
+	mapPixelHeight := float64(level.Layers[0].Height*level.TileHeight) * params.Scale
+
+	if float64(mouseX) < params.OffsetX || float64(mouseX) > params.OffsetX+mapPixelWidth ||
+		float64(mouseY) < params.OffsetY || float64(mouseY) > params.OffsetY+mapPixelHeight {
+		return // Click is outside the map area
+	}
+
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) {
+		if tm.isTileBuildable(gridX, gridY, level) { //&& !tm.isTowerAtLocation(gridX, gridY) {
+
+			if *currentGold >= towerCost {
+				*currentGold -= towerCost
+				tm.placeTower(gridX, gridY, selectedTowerID)
+				return //Tower placed!  This is the good case
+			}
+			return //Not enough gold
+		}
+	}
+}
+```
+
+Now we need one change in `game_scene.go`. Since HandleTowerPlacement scans for input, it needs to be placed in our GameScene's Update function. Drop it at the end, right before we return nil.
+
+```go
+	g.towerManager.HandleTowerPlacement(g.selectedTower, g.level, inputParams, &g.currentGold)
+
+```
+
+Now run the game. Oops. We should probably draw the towers we placed. This is simple, since we know the images.
+
+```go
+func (tm *TowerManager) DrawPlacedTowers(screen *ebiten.Image, params RenderParams, level *TilemapJSON) {
+	if level == nil { // Guard against nil level
+		return
+	}
+	for _, tower := range tm.placedTowers {
+		if tower.Image == nil {
+			continue
+		}
+		// Calculate tower position to match building animation positioning
+		// Use tile center for consistent positioning with animations
+		tileCenterX := float64(tower.X*level.TileWidth + level.TileWidth/2)
+		tileCenterY := float64(tower.Y*level.TileHeight + level.TileHeight/2)
+
+		// Get tower image dimensions
+		towerImg := tower.Image
+		imgWidth := float64(towerImg.Bounds().Dx())
+		imgHeight := float64(towerImg.Bounds().Dy())
+
+		// Position tower to be centered horizontally and bottom-aligned vertically on the tile
+		drawX_world := tileCenterX - (imgWidth / 2.0)
+		drawY_world := tileCenterY - imgHeight
+
+		opts := &ebiten.DrawImageOptions{}
+		opts.GeoM.Scale(params.Scale, params.Scale)
+		opts.GeoM.Translate(
+			drawX_world*params.Scale+params.OffsetX,
+			drawY_world*params.Scale+params.OffsetY,
+		)
+
+		screen.DrawImage(tower.Image, opts)
+
+	}
+}
+```
+
+And of course, in `game_scene.go` we need to call this from the end of our Draw function.
+
+```go
+g.towerManager.DrawPlacedTowers(screen, params, g.level)
+```
+
+Now run the game and it's drawing towers happily until you run out of gold. Of course, we have another bug. You can draw towers directly on top of each other. Let's fix this.
+In `tower_manager.go` look for the isTileBuildable function. Right near the top (it doesn't matter where, I put it right after the inner bounds check), add the following check.
+
+````go
+		// Check if there's already a tower at this position
+		for _, placedTower := range tm.placedTowers {
+			if placedTower.X == col && placedTower.Y == row {
+				return false
+			}
+		}
+	```
+	That's it.  Run the program again and you can no longer place a tower on top of a tower.
+
+	The tower placement is working, but let's be a little better with it and add a building animation.
+
+````
