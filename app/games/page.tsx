@@ -21,6 +21,14 @@ export default function Component() {
       image: "/TowerDefenderGameScreen.png?height=300&width=500",
       link: "/towerDefender.html",
     },
+    {
+      id: 2,
+      title: "Un-Ion",
+      description: "Remove Charged Particles to UnIonize the blocks.",
+      genre: "Puzzle",
+      image: "/union.png?height=300&width=500",
+      link: "/union.html",
+    },
   ];
 
   return (

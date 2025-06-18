@@ -190,28 +190,8 @@ export default function Home() {
                 <div className="rts-button-square w-6 h-6 flex items-center justify-center">
                   <Gamepad2 className="w-3 h-3 text-amber-400" />
                 </div>
-                <span className="text-sm text-amber-100">Ludum Dare 54</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="rts-button-square w-6 h-6 flex items-center justify-center">
-                  <Gamepad2 className="w-3 h-3 text-amber-400" />
-                </div>
                 <span className="text-sm text-amber-100">
-                  Global Game Jam 2023
-                </span>
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="rts-button-square w-6 h-6 flex items-center justify-center">
-                  <Gamepad2 className="w-3 h-3 text-amber-400" />
-                </div>
-                <span className="text-sm text-amber-100">js13kGames 2022</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <div className="rts-button-square w-6 h-6 flex items-center justify-center">
-                  <Gamepad2 className="w-3 h-3 text-amber-400" />
-                </div>
-                <span className="text-sm text-amber-100">
-                  GMTK Game Jam 2022
+                  Ebitengine Game Jam 2025
                 </span>
               </li>
             </ul>
