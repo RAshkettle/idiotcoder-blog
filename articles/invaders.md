@@ -941,3 +941,5 @@ func (g *GameScene) Draw(screen *ebiten.Image) {
 
 Run it and you see we now have enemies!
 ![enemies](invaders/enemies.png)
+
+Now that we have enemies, let's get them moving!
