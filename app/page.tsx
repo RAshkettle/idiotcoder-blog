@@ -1,6 +1,10 @@
 import CommanderProfile from "@/components/commander-profile";
 import Tags from "@/components/tags";
-import { getFirstWords, getSortedArticles } from "@/lib/articles";
+import {
+  getArticlesByType,
+  getFirstWords,
+  getSortedArticles,
+} from "@/lib/articles";
 import fs from "fs";
 import matter from "gray-matter";
 import { Calendar, ChevronRight, Gamepad2, Tag, User } from "lucide-react";
@@ -10,6 +14,10 @@ import path from "path";
 export default function Home() {
   const sortedArticles = getSortedArticles();
   const articleCount = sortedArticles.length;
+
+  // Get articles by type to count MISC (projects)
+  const groupedArticles = getArticlesByType();
+  const projectsCount = (groupedArticles["MISC"] || []).length;
 
   const featuredPost = sortedArticles[0];
   const nextPosts = [sortedArticles[1], sortedArticles[2]].filter(Boolean);
@@ -66,13 +74,13 @@ export default function Home() {
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
               <span className="text-green-400">🏆</span>
             </div>
-            <span className="text-green-400">JAMS: 0</span>
+            <span className="text-green-400">JAMS: 1</span>
           </div>
           <div className="rts-resource flex items-center gap-2">
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
               <span className="text-blue-400">💾</span>
             </div>
-            <span className="text-blue-400">PROJECTS: 0</span>
+            <span className="text-blue-400">PROJECTS: {projectsCount}</span>
           </div>
         </div>
 
