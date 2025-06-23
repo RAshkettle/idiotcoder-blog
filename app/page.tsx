@@ -5,6 +5,7 @@ import {
   getFirstWords,
   getSortedArticles,
 } from "@/lib/articles";
+import { getSortedReports } from "@/lib/reports";
 import fs from "fs";
 import matter from "gray-matter";
 import { Calendar, ChevronRight, Gamepad2, Tag, User } from "lucide-react";
@@ -18,6 +19,10 @@ export default function Home() {
   // Get articles by type to count MISC (projects)
   const groupedArticles = getArticlesByType();
   const projectsCount = (groupedArticles["MISC"] || []).length;
+
+  // Get reports count for jams
+  const reports = getSortedReports();
+  const jamsCount = reports.length;
 
   const featuredPost = sortedArticles[0];
   const nextPosts = [sortedArticles[1], sortedArticles[2]].filter(Boolean);
@@ -74,7 +79,7 @@ export default function Home() {
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">
               <span className="text-green-400">🏆</span>
             </div>
-            <span className="text-green-400">JAMS: 1</span>
+            <span className="text-green-400">JAMS: {jamsCount}</span>
           </div>
           <div className="rts-resource flex items-center gap-2">
             <div className="rts-resource-icon w-8 h-8 flex items-center justify-center">

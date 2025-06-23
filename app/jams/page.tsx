@@ -1,4 +1,4 @@
-import { getArticlesByType, getFirstWords } from "@/lib/articles";
+import { getFirstWords, getSortedReports } from "@/lib/reports";
 import fs from "fs";
 import matter from "gray-matter";
 import { Calendar, ChevronRight, Tag } from "lucide-react";
@@ -6,24 +6,23 @@ import Link from "next/link";
 import path from "path";
 
 const jamList = () => {
-  const groupedArticles = getArticlesByType();
-  const jams = groupedArticles["GAME_JAMS"] || [];
+  const reports = getSortedReports();
 
-  // Get content preview for each jam
-  const jamsWithPreview = jams.map((jam) => {
+  // Get content preview for each report
+  const reportsWithPreview = reports.map((report) => {
     try {
-      const fullPath = path.join(process.cwd(), "articles", `${jam.id}.md`);
+      const fullPath = path.join(process.cwd(), "reports", `${report.id}.md`);
       const fileContents = fs.readFileSync(fullPath, "utf-8");
       const matterResult = matter(fileContents);
       const preview = getFirstWords(matterResult.content, 20);
 
       return {
-        ...jam,
+        ...report,
         preview,
       };
     } catch (error) {
       return {
-        ...jam,
+        ...report,
         preview: "Preview unavailable...",
       };
     }
@@ -43,8 +42,7 @@ const jamList = () => {
             &gt; ACCESSING RECON PROTOCOLS...
           </p>
           <p className="text-amber-100">
-            &gt; {jams.length} COMBAT EFFECTIVENESS ENHANCEMENT MODULES
-            AVAILABLE
+            &gt; {reports.length} GAME JAM REPORTS AVAILABLE
           </p>
         </div>
       </div>
@@ -55,7 +53,7 @@ const jamList = () => {
           <h2 className="text-lg font-bold text-amber-400">AVAILABLE_JAMS</h2>
         </div>
         <div className="rts-panel-inner p-4">
-          {jamsWithPreview.length === 0 ? (
+          {reportsWithPreview.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-amber-100">&gt; NO JAMS AVAILABLE</p>
               <p className="text-amber-400/70 text-sm mt-2">
@@ -64,38 +62,36 @@ const jamList = () => {
             </div>
           ) : (
             <div className="grid gap-6">
-              {jamsWithPreview.map((jam, index) => (
+              {reportsWithPreview.map((report, index) => (
                 <article
-                  key={jam.id}
+                  key={report.id}
                   className="grid md:grid-cols-4 gap-4 border-b border-amber-900/30 pb-6 last:border-b-0"
                 >
                   <div className="rts-screen aspect-video md:aspect-square overflow-hidden local-scanlines">
                     <img
-                      src={
-                        ["baseAtt.webp", "tanks.webp", "rts.webp"][index % 3]
-                      }
-                      alt={`${jam.title} thumbnail`}
+                      src={report.image}
+                      alt={`${report.title} thumbnail`}
                       className="w-full h-full object-cover z-10 relative"
                     />
                   </div>
                   <div className="md:col-span-3">
                     <h3 className="text-xl font-bold mb-3 text-amber-300">
-                      {jam.title}
+                      {report.title}
                     </h3>
                     <div className="flex items-center gap-4 text-xs text-amber-400/70 mb-3">
                       <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3" /> {jam.date}
+                        <Calendar className="w-3 h-3" /> {report.date}
                       </span>
                       <span className="flex items-center gap-1">
                         <Tag className="w-3 h-3" />
-                        {jam.categories.join(", ")}
+                        {report.categories.join(", ")}
                       </span>
                     </div>
                     <p className="text-amber-100 mb-4 leading-relaxed">
-                      &gt; {jam.preview}
+                      &gt; {report.preview}
                     </p>
                     <Link
-                      href={`/${jam.id}`}
+                      href={`/jams/${report.id}`}
                       className="rts-button-small px-3 py-2 inline-flex items-center gap-2"
                     >
                       DEPLOY_JAM <ChevronRight className="w-3 h-3" />

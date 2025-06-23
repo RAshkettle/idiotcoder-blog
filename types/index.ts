@@ -6,3 +6,12 @@ export type ArticleItem = {
   categories: string[];
   image: string;
 };
+
+export type ReportItem = {
+  id: string;
+  title: string;
+  date: string;
+  article_type: string;
+  categories: string[];
+  image: string;
+};
