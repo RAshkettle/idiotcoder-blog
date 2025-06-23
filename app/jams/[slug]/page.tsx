@@ -43,11 +43,11 @@ export default async function ReportPage({ params }: Props) {
               )}
             </div>
             {report.image && (
-              <div className="relative aspect-video mb-4 rts-screen overflow-hidden local-scanlines">
+              <div className="relative mb-4 rts-screen local-scanlines">
                 <img
                   src={`/${report.image}`}
                   alt={`${report.title} screenshot`}
-                  className="w-full h-full object-cover z-10 relative"
+                  className="w-full h-auto object-contain z-10 relative"
                 />
               </div>
             )}
