@@ -116,11 +116,11 @@ export default function Home() {
                   })}
                 </span>
               </div>
-              <div className="relative aspect-video mb-4 rts-screen overflow-hidden local-scanlines">
+              <div className="relative mb-4 rts-screen local-scanlines">
                 <img
                   src={featuredPost.image}
                   alt={`${featuredPost.title} screenshot`}
-                  className="w-full h-full object-cover z-10 relative"
+                  className="w-full h-auto object-contain z-10 relative"
                 />
               </div>
               <p className="mb-4 leading-relaxed text-amber-100">
@@ -149,11 +149,11 @@ export default function Home() {
             <div className="grid gap-6">
               {nextPostsWithPreview.map((post, index) => (
                 <article key={post.title} className="grid md:grid-cols-4 gap-4">
-                  <div className="rts-screen aspect-video md:aspect-square overflow-hidden local-scanlines">
+                  <div className="rts-screen local-scanlines">
                     <img
                       src={post.image}
                       alt={`${post.title} thumbnail`}
-                      className="w-full h-full object-cover z-10 relative"
+                      className="w-full h-auto object-contain z-10 relative"
                     />
                   </div>
                   <div className="md:col-span-3">
