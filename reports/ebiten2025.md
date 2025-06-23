@@ -1,8 +1,8 @@
 ---
-title: "About"
-date: "05-25-2025"
-categories: ["none"]
-article_type: "ABOUT"
+title: "2025 Ebitengine Game Jam"
+date: "06-23-2025"
+categories: ["puzzle"]
+article_type: "GAME_JAM"
 image: "union/union.png"
 ---
 
