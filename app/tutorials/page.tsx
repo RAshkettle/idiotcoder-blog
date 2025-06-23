@@ -77,9 +77,7 @@ const TutorialList = () => {
                 >
                   <div className="rts-screen aspect-video md:aspect-square overflow-hidden local-scanlines">
                     <img
-                      src={
-                        ["baseAtt.webp", "tanks.webp", "rts.webp"][index % 3]
-                      }
+                      src={tutorial.image}
                       alt={`${tutorial.title} thumbnail`}
                       className="w-full h-full object-cover z-10 relative"
                     />

@@ -3,6 +3,7 @@ title: "Tower Defense"
 date: "05-30-2025"
 article_type: "TUTORIALS"
 categories: ["go", "tutorial"]
+image: "TowerDefenderGameScreen.png"
 ---
 
 # Tower Defense - Creating a Tower Defense game with Ebitengine

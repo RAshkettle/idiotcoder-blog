@@ -4,4 +4,5 @@ export type ArticleItem = {
   date: string;
   article_type: string;
   categories: string[];
+  image: string;
 };

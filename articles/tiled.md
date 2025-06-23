@@ -3,6 +3,7 @@ title: "Tiled"
 date: "05-29-2025"
 article_type: "TUTORIALS"
 categories: ["tools", "go", "tutorial"]
+image: "tanks.webp"
 ---
 
 # Tiled - Loading a tiled map

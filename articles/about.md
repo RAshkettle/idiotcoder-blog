@@ -3,6 +3,7 @@ title: "About"
 date: "05-25-2025"
 categories: ["none"]
 article_type: "ABOUT"
+image: "me.png"
 ---
 
 # About Me

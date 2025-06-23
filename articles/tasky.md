@@ -3,6 +3,7 @@ title: "Tasky"
 date: "05-28-2025"
 categories: ["tools", "design", "devlog"]
 article_type: "MISC"
+image: "rts.webp"
 ---
 
 # Tasky

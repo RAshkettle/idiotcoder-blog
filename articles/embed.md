@@ -3,6 +3,7 @@ title: "Embed"
 date: "05-29-2025"
 article_type: "TUTORIALS"
 categories: ["tools", "go", "tutorial"]
+image: "embed.png"
 ---
 
 # Embed

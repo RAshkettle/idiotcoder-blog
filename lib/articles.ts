@@ -51,6 +51,7 @@ export const getSortedArticles = (): ArticleItem[] => {
       date: matterResult.data.date || "01-01-2024",
       categories: categories,
       article_type: matterResult.data.article_type || "misc",
+      image: matterResult.data.image || "baseAtt.webp",
     };
   });
   return allArticleData.sort((a, b) => {
@@ -98,6 +99,7 @@ export const getArticleData = async (id: string) => {
     date: moment(matterResult.data.date, "MM-DD-YYYY").format("MMMM Do YYYY"),
     article_type: matterResult.data.article_type,
     categories: matterResult.data.categories,
+    image: matterResult.image,
   };
 };
 

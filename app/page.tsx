@@ -13,7 +13,6 @@ export default function Home() {
 
   const featuredPost = sortedArticles[0];
   const nextPosts = [sortedArticles[1], sortedArticles[2]].filter(Boolean);
-  const placeholders = ["baseAtt.webp", "tanks.webp"];
 
   // Get preview for featured post
   const getFeaturedPreview = () => {
@@ -106,8 +105,8 @@ export default function Home() {
               </div>
               <div className="relative aspect-video mb-4 rts-screen overflow-hidden local-scanlines">
                 <img
-                  src="rts.webp"
-                  alt="Pixel Panic Game Screenshot"
+                  src={featuredPost.image}
+                  alt={`${featuredPost.title} screenshot`}
                   className="w-full h-full object-cover z-10 relative"
                 />
               </div>
@@ -139,8 +138,8 @@ export default function Home() {
                 <article key={post.title} className="grid md:grid-cols-4 gap-4">
                   <div className="rts-screen aspect-video md:aspect-square overflow-hidden local-scanlines">
                     <img
-                      src={placeholders[index]}
-                      alt={`Post ${post.title} thumbnail`}
+                      src={post.image}
+                      alt={`${post.title} thumbnail`}
                       className="w-full h-full object-cover z-10 relative"
                     />
                   </div>

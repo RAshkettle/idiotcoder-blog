@@ -3,6 +3,7 @@ title: "Invaders"
 date: "06-16-2025"
 article_type: "TUTORIALS"
 categories: ["go", "tutorial"]
+image: "invaders/go-invaders.png"
 ---
 
 # Invaders - Creating a Space Invaders remake game with Ebitengine (IN PROGRESS)
