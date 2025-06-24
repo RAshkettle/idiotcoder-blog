@@ -6,7 +6,7 @@ categories: ["go", "tutorial"]
 image: "invaders/go-invaders.png"
 ---
 
-# Invaders - Creating a Space Invaders remake game with Ebitengine (IN PROGRESS)
+# Invaders - Creating a Space Invaders remake game with Ebitengine
 
 I'm very much all about retro gaming. Particularly I have a soft spot for Space Invaders. When the game came out, I lived 3 short blocks from an Arcade that got it in. I remember spending every cent of my paper route money in one night. I was obsesed...
 ![go invaders](invaders/go-invaders.png).
