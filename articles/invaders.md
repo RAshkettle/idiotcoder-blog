@@ -1053,10 +1053,10 @@ func (g *GameScene) Update() error {
 They MOVE! This is starting to really look like it should. We need sound though. Let's add it.
 Again, all we need to change will be in `game_scene.go`
 
-First, add an audio context to our GameScene struct
+First, add an audio context to our GameScene file to serve as a global variable throughout our application.
 
 ```go
-audioContext     *audio.Context
+var audioContext = audio.NewContext(44100)
 ```
 
 Then define a new context and add it to our struct
@@ -1069,7 +1069,6 @@ func NewGameScene(sm *SceneManager) *GameScene {
 		aliens:           SpawnAlienWave(),
 		timer:            stopwatch.NewStopwatch(1 * time.Second),
 		currentDirection: LEFT,
-		audioContext:     audio.NewContext(44100),
 	}
 	g.bases = CreateBases(g.player.Y)
 	return g
@@ -1079,13 +1078,13 @@ func NewGameScene(sm *SceneManager) *GameScene {
 Then at the very top of MoveAliens, add this...
 
 ```go
-	moveStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.MoveSound))
+	moveStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(assets.MoveSound))
 	if err != nil {
 
 		return // Don't proceed if decoding failed
 	}
 
-	moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
+	moveAudioPlayer, err := audioContext.NewPlayer(moveStream)
 	if err != nil {
 
 		return // Don't proceed if player creation failed
@@ -1094,3 +1093,649 @@ Then at the very top of MoveAliens, add this...
 ```
 
 Now run your game and you should hear the movement sound each time they shift. GREAT!
+
+It's time to create our first End Condition. Now that the aliens move and descend, we need to end the game if they reach the bottom.
+On our End Scene, we will display the player's score. Therefore, we need to add it to our GameScene.
+In addition, let's grab the height of our screen so we know where the bottom is.
+
+```go
+type GameScene struct {
+	sceneManager     *SceneManager
+	player           *Player
+	bases            []*Base
+	aliens           []*Alien
+	currentDirection Direction
+	timer            *stopwatch.Stopwatch
+	score            int
+}
+
+const gameSceneHeight = 240
+```
+
+Now right at the bottom of the GameScene's Update function, just before you return nil, add this.
+
+```go
+	// Check for lose condition (aliens reaching bottom)
+	if len(g.aliens) > 0 {
+		// Get alien height from the sprite. Assumes all alien sprites for CurrentFrame are same height.
+		alienHeight := g.aliens[0].Sprite[g.aliens[0].CurrentFrame].Bounds().Dy()
+		for _, alien := range g.aliens {
+			if alien.Y+alienHeight >= gameSceneHeight {
+				g.sceneManager.TransitionTo(SceneEndScreen) // Immediate transition for aliens reaching bottom
+				return nil                                  // Transitioning, no more updates for this scene
+			}
+		}
+	}
+```
+
+Now let's get that EndScene up and running. Let's add our fonts to our struct.
+
+```go
+package main
+
+import (
+	"bytes"
+	"fmt"
+	"image/color"
+
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
+	"github.com/hajimehoshi/ebiten/v2/text/v2"
+	"golang.org/x/image/font/gofont/goregular"
+)
+
+type EndScene struct {
+	sceneManager *SceneManager
+	titleFont    *text.GoTextFace
+	subtitleFont *text.GoTextFace
+}
+```
+
+Of course, you understand by now that this means a factory update.
+
+```go
+func NewEndScene(sm *SceneManager) *EndScene {
+	titleFontSource, _ := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	titleFont := &text.GoTextFace{
+		Source: titleFontSource,
+		Size:   48,
+	}
+	subtitleFontSource, _ := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	subtitleFont := &text.GoTextFace{
+		Source: subtitleFontSource,
+		Size:   24,
+	}
+	return &EndScene{
+		sceneManager: sm,
+		titleFont:    titleFont,
+		subtitleFont: subtitleFont,
+	}
+}
+```
+
+Update now needs to listen for key presses and mouse clicks. This should feel familiar as it's the same as the Title Scene.
+
+```go
+func (t *EndScene) Update() error {
+	// Check for key presses
+	if ebiten.IsKeyPressed(ebiten.KeySpace) ||
+		ebiten.IsKeyPressed(ebiten.KeyEnter) ||
+		ebiten.IsKeyPressed(ebiten.KeyEscape) ||
+		inpututil.IsKeyJustPressed(ebiten.KeyA) ||
+		inpututil.IsKeyJustPressed(ebiten.KeyS) ||
+		inpututil.IsKeyJustPressed(ebiten.KeyD) ||
+		inpututil.IsKeyJustPressed(ebiten.KeyW) {
+		t.sceneManager.gameScene = NewGameScene(t.sceneManager)
+		t.sceneManager.TransitionTo(SceneGame)
+		return nil
+	}
+	// Check for mouse clicks
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) ||
+		inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonRight) {
+		t.sceneManager.gameScene = NewGameScene(t.sceneManager)
+		t.sceneManager.TransitionTo(SceneGame)
+		return nil
+	}
+	return nil
+}
+```
+
+All we have left here is to render our text to the screen.
+
+```go
+func (t *EndScene) Draw(screen *ebiten.Image) {
+	// Dark red background to indicate game over
+	screen.Fill(color.RGBA{25, 10, 10, 255})
+
+	// Get screen dimensions
+	w, h := screen.Bounds().Dx(), screen.Bounds().Dy()
+
+	// Draw "Game Over" title
+	titleText := "Game Over"
+	titleBounds, _ := text.Measure(titleText, t.titleFont, 0)
+	titleX := (w - int(titleBounds)) / 2
+	titleY := h/2 - 50
+
+	op := &text.DrawOptions{}
+	op.GeoM.Translate(float64(titleX), float64(titleY))
+	op.ColorScale.ScaleWithColor(color.RGBA{255, 100, 100, 255}) // Light red text
+	text.Draw(screen, titleText, t.titleFont, op)
+
+	// Draw final score
+	scoreText := fmt.Sprintf("Final Score: %d", t.sceneManager.gameScene.score)
+	scoreBounds, _ := text.Measure(scoreText, t.subtitleFont, 0)
+	scoreX := (w - int(scoreBounds)) / 2
+	scoreY := titleY + 50
+
+	op3 := &text.DrawOptions{}
+	op3.GeoM.Translate(float64(scoreX), float64(scoreY))
+	op3.ColorScale.ScaleWithColor(color.RGBA{255, 200, 100, 255}) // Golden color for score
+	text.Draw(screen, scoreText, t.subtitleFont, op3)
+
+	// Draw restart instruction
+	subtitleText := "Press any key to restart"
+	subtitleBounds, _ := text.Measure(subtitleText, t.subtitleFont, 0)
+	subtitleX := (w - int(subtitleBounds)) / 2
+	subtitleY := titleY + 100
+
+	op2 := &text.DrawOptions{}
+	op2.GeoM.Translate(float64(subtitleX), float64(subtitleY))
+	op2.ColorScale.ScaleWithColor(color.RGBA{200, 150, 150, 255}) // Lighter red text
+	text.Draw(screen, subtitleText, t.subtitleFont, op2)
+}
+```
+
+And now, when the aliens reach the bottom, you should see this.
+![game over](invaders/gameOver.png)
+
+All these aliens and no way to blast em. Let's fix that.
+Open up `player.go` and add a PlayerMissile struct
+
+```go
+type PlayerMissile struct {
+	Sprite *ebiten.Image
+	X      int
+	Y      int
+}
+```
+
+We will need to track two constants for this. The speed of the missile, and the cooldown time for missile shots.
+
+```go
+const(
+	playerMissileSpeed  = 3
+	playerShootCooldown = 500 * time.Millisecond
+)
+```
+
+PlayerMissile needs a factory
+
+```go
+func NewPlayerMissile(p *Player) *PlayerMissile {
+	// Center missile on player
+	missileWidth := assets.PlayerShot.Bounds().Dx()
+	playerWidth := p.Sprite.Bounds().Dx()
+	return &PlayerMissile{
+		Sprite: assets.PlayerShot,
+		X:      p.X + (playerWidth / 2) - (missileWidth / 2),
+		Y:      p.Y,
+	}
+}
+```
+
+And let's update Player and it's Factory to contain missiles.
+
+```go
+type Player struct {
+	Sprite     *ebiten.Image
+	X          int
+	Y          int
+	ShootTimer *stopwatch.Stopwatch
+	Missiles   []*PlayerMissile
+}
+func NewPlayer() *Player {
+	playerWidth := assets.Player.Bounds().Dx()
+	playerHeight := assets.Player.Bounds().Dy()
+	return &Player{
+		Sprite:     assets.Player,
+		X:          (gameWidth - playerWidth) / 2,
+		Y:          gameHeight - playerHeight - 8,
+		ShootTimer: stopwatch.NewStopwatch(playerShootCooldown),
+		Missiles:   make([]*PlayerMissile, 0),
+	}
+}
+```
+
+Then in the Update function, place this code at the bottom (right before the final return nil). This fires the missile, provided the cooldown timer has expired.
+Additionally, it will play a sound when you fire.
+
+```go
+	// Shooting logic
+	p.ShootTimer.Update()
+	if inpututil.IsKeyJustPressed(ebiten.KeySpace) {
+		if !p.ShootTimer.IsRunning() || p.ShootTimer.IsDone() {
+			newMissile := NewPlayerMissile(p)
+			p.Missiles = append(p.Missiles, newMissile)
+			p.ShootTimer.Reset() // Reset and start the timer
+			p.ShootTimer.Start()
+
+			// Play shoot sound
+			if audioContext != nil {
+				shootSoundBytes := assets.PlayerShootSound
+				shootStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(shootSoundBytes))
+				if err != nil {
+					log.Printf("Error decoding player shoot sound: %v", err)
+				} else {
+					shootAudioPlayer, err := audioContext.NewPlayer(shootStream)
+					if err != nil {
+						log.Printf("Error creating audio player for shoot sound: %v", err)
+					} else {
+						shootAudioPlayer.Play()
+					}
+				}
+			}
+		}
+	}
+
+	// Update missiles
+	activeMissiles := make([]*PlayerMissile, 0, len(p.Missiles))
+	for _, missile := range p.Missiles {
+		missile.Y -= playerMissileSpeed
+		if missile.Y+missile.Sprite.Bounds().Dy() > 0 { // Check if missile is still on screen (top edge)
+			activeMissiles = append(activeMissiles, missile)
+		}
+	}
+	p.Missiles = activeMissiles
+```
+
+Now, back in `game_scene.go` add the following function. This function will simply determine through a rect overlap, whether or not there is a collision between the player's missile and an alien. If so, play a sound, remove the alien and give the player points.
+
+```go
+func (g *GameScene) CheckPlayerMissileCollision() {
+	activeMissiles := make([]*PlayerMissile, 0, len(g.player.Missiles))
+	activeAliens := make([]*Alien, 0, len(g.aliens))
+
+	// Track which aliens were hit
+	aliensHit := make(map[*Alien]bool)
+
+	for _, missile := range g.player.Missiles {
+		hit := false
+
+		// Get missile center point (only center 2 pixels)
+		missileX := missile.X + missile.Sprite.Bounds().Dx()/2 - 1
+		missileY := missile.Y + missile.Sprite.Bounds().Dy()/2 - 1
+		missileRect := image.Rect(missileX, missileY, missileX+2, missileY+2)
+
+		for _, alien := range g.aliens {
+			// Skip if this alien was already hit
+			if aliensHit[alien] {
+				continue
+			}
+
+			// Get alien sprite bounds
+			alienRect := image.Rect(alien.X, alien.Y,
+				alien.X+alien.Sprite[alien.CurrentFrame].Bounds().Dx(),
+				alien.Y+alien.Sprite[alien.CurrentFrame].Bounds().Dy())
+
+			// Check if missile center intersects with alien
+			if missileRect.Overlaps(alienRect) {
+				// Add alien points to player
+				g.score += alien.PointsValue
+				hit = true
+				aliensHit[alien] = true
+
+				// Play alien explosion sound
+				explosionStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+				if err != nil {
+					log.Printf("Error decoding alien explosion sound: %v", err)
+				} else {
+					explosionAudioPlayer, err := audioContext.NewPlayer(explosionStream)
+					if err != nil {
+						log.Printf("Error creating audio player for explosion sound: %v", err)
+					} else {
+						explosionAudioPlayer.Play()
+					}
+				}
+
+				break // This missile hit an alien, don't check other aliens
+			}
+		}
+		// Only keep missile if it didn't hit anything
+		if !hit {
+			activeMissiles = append(activeMissiles, missile)
+		}
+	}
+	// Build active aliens list (only aliens that weren't hit)
+	for _, alien := range g.aliens {
+		if !aliensHit[alien] {
+			activeAliens = append(activeAliens, alien)
+		}
+	}
+	// Update the slices with only active (non-collided) objects
+	g.player.Missiles = activeMissiles
+	g.aliens = activeAliens
+}
+```
+
+Now you can shoot aliens!
+![shooting enabled](invaders/shootingEnabled.png)
+
+Sure, we can shoot them, but things are a bit wonky. Firstly, the bases allow the player to be invulnerable. In Space Invaders, when a base is hit, by an enemy or player (doesn't matter), the base takes damage. Let's enable that.
+
+The following function will check for collisions to a base and apply the damage (visually and in data).
+
+```go
+func (g *GameScene) CheckMissileBaseCollisions() {
+	// Check player missiles vs bases
+	activeMissiles := make([]*PlayerMissile, 0, len(g.player.Missiles))
+	for _, missile := range g.player.Missiles {
+		hit := false
+
+		// Get missile center 4 pixels on X-axis for more precise collision
+		missileWidth := missile.Sprite.Bounds().Dx()
+		missileCenterX := missile.X + missileWidth/2 - 2 // Center minus 2 pixels
+		missileRect := image.Rect(missileCenterX, missile.Y,
+			missileCenterX+4, // Only 4 pixels wide
+			missile.Y+missile.Sprite.Bounds().Dy())
+
+		for _, base := range g.bases {
+			for _, block := range base.Blocks {
+				if !block.Exists {
+					continue
+				}
+
+				// Get block bounds (accounting for 50% scale)
+				blockRect := image.Rect(block.X, block.Y, block.X+8, block.Y+8)
+
+				if missileRect.Overlaps(blockRect) {
+					block.TakeDamage()
+					hit = true
+
+					// Play alien explosion sound for base hit
+					explosionStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+					if err != nil {
+						log.Printf("Error decoding base hit sound: %v", err)
+					} else {
+						explosionAudioPlayer, err := audioContext.NewPlayer(explosionStream)
+						if err != nil {
+							log.Printf("Error creating audio player for base hit sound: %v", err)
+						} else {
+							explosionAudioPlayer.Play()
+						}
+					}
+					break
+				}
+			}
+			if hit {
+				break
+			}
+		}
+
+		if !hit {
+			activeMissiles = append(activeMissiles, missile)
+		}
+	}
+	g.player.Missiles = activeMissiles
+}
+```
+
+Now our bases take damage from our shots rather than being cheat codes.  
+I guess now that we are killing enemies, we should show the score. Again all changes are in `game_scene.go`
+To our GameScene struct, at a reference to our font.
+
+```go
+scoreFont        *text.GoTextFace
+```
+
+And let's update the factory.
+
+```go
+func NewGameScene(sm *SceneManager) *GameScene {
+	scoreFontSource, _ := text.NewGoTextFaceSource(bytes.NewReader(goregular.TTF))
+	scoreFont := &text.GoTextFace{
+		Source: scoreFontSource,
+		Size:   8,
+	}
+	g := &GameScene{
+		sceneManager:     sm,
+		player:           NewPlayer(),
+		aliens:           SpawnAlienWave(),
+		timer:            stopwatch.NewStopwatch(1 * time.Second),
+		currentDirection: LEFT,
+		scoreFont:        scoreFont,
+	}
+	g.bases = CreateBases(g.player.Y)
+	return g
+}
+```
+
+The last step for this is to add the following to the end of the Draw function.
+
+```go
+		// Draw score
+		scoreText := fmt.Sprintf("SCORE: %d", g.score)
+		textOp := &text.DrawOptions{}
+		textOp.GeoM.Scale(float64(scale), float64(scale))
+		textOp.GeoM.Translate(offsetX+15*scale, offsetY+15*scale)
+		textOp.ColorScale.ScaleWithColor(color.RGBA{225, 225, 255, 255}) /
+		text.Draw(screen, scoreText, g.scoreFont, textOp)
+```
+
+And there ya go! Now we have a score showing which follows to our end scene. We are starting to have an actual game here.
+
+### UFO
+
+Space Invaders had that random little UFO flying at the top of the screen periodically for some extra points. Let's add it.
+Create a new file and call it `ufo.go`
+We can start out simple with the struct for it and it's factory.
+
+```go
+package main
+
+import (
+	"bytes"
+	"invaders/assets"
+	"log"
+	"math/rand"
+	"time"
+
+	stopwatch "github.com/RAshkettle/Stopwatch"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/audio/vorbis"
+)
+
+type UFO struct {
+	Sprite       *ebiten.Image
+	X            int
+	Y            int
+	Speed        int
+	FrameCounter int
+}
+
+func NewUFO() *UFO {
+	return &UFO{
+		Sprite:       assets.UFO,
+		X:            320,
+		Y:            16,
+		Speed:        1,
+		FrameCounter: 0,
+	}
+}
+```
+
+The UFO spawns on a few rules. It spawns once the first 10 enemies in a wave have been destroyed. After that, it spawns on a random duration.
+
+```go
+func (g *GameScene) StartUFOTimer() {
+	// Random duration between 10-30 seconds
+	duration := time.Duration(10+rand.Intn(21)) * time.Second
+	g.ufoTimer = stopwatch.NewStopwatch(duration)
+	g.ufoTimer.Start()
+}
+```
+
+Of course, when the timer goes off, the caller will likely want to spawn a UFO.
+
+```go
+func (g *GameScene) SpawnUFO() {
+	if g.ufo == nil {
+		g.ufo = NewUFO()
+
+		// Start playing UFO sound at 50% volume, looping
+		ufoStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(assets.UFOSound))
+		if err != nil {
+			log.Printf("Error decoding UFO sound: %v", err)
+		} else {
+			g.ufoAudioPlayer, err = audioContext.NewPlayer(ufoStream)
+			if err != nil {
+				log.Printf("Error creating UFO audio player: %v", err)
+			} else {
+				g.ufoAudioPlayer.SetVolume(0.5) // 50% volume
+				g.ufoAudioPlayer.Play()
+			}
+		}
+	}
+}
+```
+
+So, now that it's spawned, let's move it across the screen.
+
+```go
+func (g *GameScene) UpdateUFO() {
+	if g.ufo != nil {
+		g.ufo.FrameCounter++
+		// Move only every other frame (50% slower)
+		if g.ufo.FrameCounter%2 == 0 {
+			g.ufo.X -= g.ufo.Speed
+		}
+
+		// Remove UFO if it goes off the left side of screen
+		if g.ufo.X+g.ufo.Sprite.Bounds().Dx() < 0 {
+			g.ufo = nil
+			// Stop UFO sound
+			if g.ufoAudioPlayer != nil {
+				g.ufoAudioPlayer.Pause()
+				g.ufoAudioPlayer = nil
+			}
+			g.StartUFOTimer()
+		}
+	}
+		// Keep UFO sound looping while UFO exists
+		if g.ufo != nil && g.ufoAudioPlayer != nil && !g.ufoAudioPlayer.IsPlaying() {
+			g.ufoAudioPlayer.Rewind()
+			g.ufoAudioPlayer.Play()
+		}
+
+		// Check if UFO should spawn (at least 10 kills and no UFO active and no timer running)
+		if g.aliensKilled >= 10 && g.ufo == nil && (g.ufoTimer == nil || g.ufoTimer.IsDone()) {
+			g.SpawnUFO()
+		}
+
+		// Update UFO timer
+		if g.ufoTimer != nil {
+			g.ufoTimer.Update()
+			if g.ufoTimer.IsDone() {
+				g.ufoTimer.Stop()
+				g.ufoTimer = nil
+			}
+		}
+}
+```
+
+That moves it across the screen and plays the sounds.
+So, time to head back to `game_scene.go`
+We can start by adding a few more fields to our GameScene struct. On this one instance, we can ignore the factory, because all defaults are being properly set.
+
+```go
+	ufo              *UFO
+	ufoTimer         *stopwatch.Stopwatch
+	ufoAudioPlayer   *audio.Player
+	aliensKilled 		  int
+```
+
+At the bottom of the Update function, after whe check for missile collisions, add this line.
+
+```go
+g.UpdateUFO()
+```
+
+In our Draw function, right above where we draw the score...
+
+```go
+	// Draw UFO if exists
+	if g.ufo != nil {
+		ufoOp := &ebiten.DrawImageOptions{}
+		ufoOp.GeoM.Scale(float64(scale), float64(scale))
+		ufoOp.GeoM.Translate(float64(g.ufo.X)*scale+offsetX, float64(g.ufo.Y)*scale+offsetY)
+		screen.DrawImage(g.ufo.Sprite, ufoOp)
+	}
+```
+
+In the CheckPlayerMissileCollision function, look for the following lines
+
+```go
+				g.score += alien.PointsValue
+				hit = true
+				aliensHit[alien] = true
+```
+
+Add this to it
+
+```go
+g.aliensKilled++
+```
+
+This will tell us when to spawn our first UFO (the killing of 10 aliens).
+
+Now we need to check to see if the player hit the UFO with a missile. Go into CheckPlayerMissileCollisions and look for this...
+
+```go
+		// Only keep missile if it didn't hit anything
+		if !hit {
+			activeMissiles = append(activeMissiles, missile)
+		}
+```
+
+Right ABOVE that statement, add this.
+
+```go
+				// Check UFO collision
+				if !hit && g.ufo != nil {
+					// Get UFO bounds
+					ufoRect := image.Rect(g.ufo.X, g.ufo.Y,
+						g.ufo.X+g.ufo.Sprite.Bounds().Dx(),
+						g.ufo.Y+g.ufo.Sprite.Bounds().Dy())
+
+					// Check if missile center intersects with UFO
+					if missileRect.Overlaps(ufoRect) {
+						// Add UFO points to player
+						g.score += 100
+						hit = true
+
+						// Play alien explosion sound
+						explosionStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+						if err != nil {
+							log.Printf("Error decoding UFO explosion sound: %v", err)
+						} else {
+							explosionAudioPlayer, err := audioContext.NewPlayer(explosionStream)
+							if err != nil {
+								log.Printf("Error creating audio player for UFO explosion sound: %v", err)
+							} else {
+								explosionAudioPlayer.Play()
+							}
+						}
+						// Remove UFO and start timer for next one
+						g.ufo = nil
+						// Stop UFO sound
+						if g.ufoAudioPlayer != nil {
+							g.ufoAudioPlayer.Pause()
+							g.ufoAudioPlayer = nil
+						}
+						g.StartUFOTimer()
+					}
+				}
+```
+
+The UFO is working and now behaves as expected.
+
+We are nearly complete here. All we need now is for the enemy to shoot back. Let's do this.
