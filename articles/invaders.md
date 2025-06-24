@@ -1739,3 +1739,283 @@ Right ABOVE that statement, add this.
 The UFO is working and now behaves as expected.
 
 We are nearly complete here. All we need now is for the enemy to shoot back. Let's do this.
+Open up `alien.go` and let's add a struct for our alien's missiles. Just the coordinates and an image.
+
+```go
+type AlienMissile struct {
+	Sprite *ebiten.Image
+	X      int
+	Y      int
+}
+```
+
+Now let's append to our GameScene. We want a slice to hold our missiles. In addition, since we know the missiles will be trying to kill the player, let's add death logic. Add the following fields to GameScene
+
+```go
+	alienMissiles    []*AlienMissile
+	deathTimer       *stopwatch.Stopwatch
+	playerDead       bool
+	playerLives      int
+```
+
+Then in our NewGameScene factory, instantiate them...
+
+```go
+		alienMissiles:    make([]*AlienMissile, 0),
+		deathTimer:       stopwatch.NewStopwatch(1500 * time.Millisecond), // 1.5 seconds
+		playerDead:       false,
+		playerLives:      5,
+```
+
+At the bottom of MoveAliens, right before the closing brace, add this code to Spawn missiles...
+
+```go
+	// Check for SquidAlien shooting (10% chance per movement)
+	for _, alien := range g.aliens {
+		// Only allow shooting if we have less than 3 missiles active
+		if alien.AlienType == SquidAlien && rand.Float64() < 0.1 && len(g.alienMissiles) < 3 {
+			missileX := alien.X + alien.Sprite[alien.CurrentFrame].Bounds().Dx()/2 - assets.AlienShot.Bounds().Dx()/2
+			missileY := alien.Y + alien.Sprite[alien.CurrentFrame].Bounds().Dy()
+
+			newAlienMissile := &AlienMissile{
+				Sprite: assets.AlienShot,
+				X:      missileX,
+				Y:      missileY,
+			}
+			g.alienMissiles = append(g.alienMissiles, newAlienMissile)
+		}
+	}
+```
+
+This logic spawns a missile every random interval, provided there are not already 3 missiles active. It triggers on enemy move (like the arcade game does).
+
+We need to check for collisions against the player and against the bases. Let's do the player first.
+
+Note that if the player collides with a missile, we start the death timer. This delay keeps us from immediately dying again to the same missile.
+
+```go
+func (g *GameScene) CheckAlienMissilePlayerCollision() {
+	// Don't check collisions if player is already dead
+	if g.playerDead {
+		return
+	}
+
+	activeAlienMissiles := make([]*AlienMissile, 0, len(g.alienMissiles))
+
+	// Get player bounds
+	playerRect := image.Rect(g.player.X, g.player.Y,
+		g.player.X+g.player.Sprite.Bounds().Dx(),
+		g.player.Y+g.player.Sprite.Bounds().Dy())
+
+	for _, missile := range g.alienMissiles {
+		// Get missile bounds
+		missileRect := image.Rect(missile.X, missile.Y,
+			missile.X+missile.Sprite.Bounds().Dx(),
+			missile.Y+missile.Sprite.Bounds().Dy())
+
+		// Check if missile intersects with player
+		if missileRect.Overlaps(playerRect) {
+			// Player is hit - decrease lives and start death timer
+			g.playerLives--
+			g.playerDead = true
+			g.deathTimer.Reset()
+			g.deathTimer.Start()
+
+			// Clear all alien missiles to prevent instant death on respawn
+			g.alienMissiles = make([]*AlienMissile, 0)
+
+			// Play player death sound
+			deathStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(assets.PlayerDeathSound))
+			if err != nil {
+				log.Printf("Error decoding player death sound: %v", err)
+			} else {
+				deathAudioPlayer, err := audioContext.NewPlayer(deathStream)
+				if err != nil {
+					log.Printf("Error creating audio player for death sound: %v", err)
+				} else {
+					deathAudioPlayer.Play()
+				}
+			}
+			// Return early since we cleared all missiles
+			return
+		} else {
+			// Keep missile if no collision
+			activeAlienMissiles = append(activeAlienMissiles, missile)
+		}
+	}
+	g.alienMissiles = activeAlienMissiles
+}
+```
+
+Now that we've checked player collisions, we need to check against the bases.
+
+```go
+func(g *GameScene)CheckAlienMissileBaseCollision(){
+		// Check alien missiles vs bases
+		activeAlienMissiles := make([]*AlienMissile, 0, len(g.alienMissiles))
+		for _, missile := range g.alienMissiles {
+			hit := false
+
+			// Get missile bounds
+			missileRect := image.Rect(missile.X, missile.Y,
+				missile.X+missile.Sprite.Bounds().Dx(),
+				missile.Y+missile.Sprite.Bounds().Dy())
+
+			for _, base := range g.bases {
+				for _, block := range base.Blocks {
+					if !block.Exists {
+						continue
+					}
+
+					// Get block bounds (accounting for 50% scale)
+					blockRect := image.Rect(block.X, block.Y, block.X+8, block.Y+8)
+
+					if missileRect.Overlaps(blockRect) {
+						block.TakeDamage()
+						hit = true
+
+						// Play alien explosion sound for base hit
+						explosionStream, err := vorbis.DecodeWithSampleRate(audioContext.SampleRate(), bytes.NewReader(assets.AlienExplosionSound))
+						if err != nil {
+							log.Printf("Error decoding base hit sound: %v", err)
+						} else {
+							explosionAudioPlayer, err := audioContext.NewPlayer(explosionStream)
+							if err != nil {
+								log.Printf("Error creating audio player for base hit sound: %v", err)
+							} else {
+								explosionAudioPlayer.Play()
+							}
+						}
+						break
+					}
+				}
+				if hit {
+					break
+				}
+			}
+
+			if !hit {
+				activeAlienMissiles = append(activeAlienMissiles, missile)
+			}
+		}
+		g.alienMissiles = activeAlienMissiles
+}
+```
+
+That leaves us with needing changes to Draw and Update to wire it all in. Let's do Draw first as it's the simplest.
+In `game_scene.go` add this to the Draw function right above where we Draw the Score.
+
+```go
+		// Draw alien missiles
+		for _, missile := range g.alienMissiles {
+			missileOp := &ebiten.DrawImageOptions{}
+			missileOp.GeoM.Scale(float64(scale), float64(scale))
+			missileOp.GeoM.Translate(float64(missile.X)*scale+offsetX, float64(missile.Y)*scale+offsetY)
+			screen.DrawImage(missile.Sprite, missileOp)
+		}
+```
+
+That puts the missiles on the screen, but now we need to move em.
+Now let's change Update. The changes will go to the bottom and the top of the function. Look for this block at the bottom....
+
+```go
+	// Check for lose condition (aliens reaching bottom)
+	if len(g.aliens) > 0 {
+		// Get alien height from the sprite. Assumes all alien sprites for CurrentFrame are same height.
+		alienHeight := g.aliens[0].Sprite[g.aliens[0].CurrentFrame].Bounds().Dy()
+		for _, alien := range g.aliens {
+			if alien.Y+alienHeight >= gameSceneHeight {
+				g.sceneManager.TransitionTo(SceneEndScreen) // Immediate transition for aliens reaching bottom
+				return nil                                  // Transitioning, no more updates for this scene
+			}
+		}
+		[...]
+```
+
+Change it to this...
+
+```go
+	if len(g.aliens) > 0 {
+		// Get alien height from the sprite. Assumes all alien sprites for CurrentFrame are same height.
+		alienHeight := g.aliens[0].Sprite[g.aliens[0].CurrentFrame].Bounds().Dy()
+		for _, alien := range g.aliens {
+			if alien.Y+alienHeight >= gameSceneHeight {
+				g.sceneManager.TransitionTo(SceneEndScreen) // Immediate transition for aliens reaching bottom
+				return nil                                  // Transitioning, no more updates for this scene
+			}
+		}
+
+		// Update alien missiles
+		activeAlienMissiles := make([]*AlienMissile, 0, len(g.alienMissiles))
+		for _, missile := range g.alienMissiles {
+			missile.Y += 1                   // Move missile down at speed 1
+			if missile.Y < gameSceneHeight { // Keep missile if still on screen
+				activeAlienMissiles = append(activeAlienMissiles, missile)
+			}
+		}
+		g.alienMissiles = activeAlienMissiles
+		g.CheckPlayerMissileCollision()
+		g.CheckAlienMissilePlayerCollision()
+		g.CheckMissileBaseCollisions()
+		g.CheckAlienMissileBaseCollision()
+		g.UpdateUFO()
+
+	}
+	return nil
+}
+```
+
+We added a call to Check collisions with the player and the bases. We are also moving the missile steadily downward.
+At the very top of Update is this line...
+
+```go
+currentSpeed := len(g.aliens) * 20
+```
+
+Directly after that line, add this...
+
+```go
+	// Check death timer first
+	if g.playerDead {
+		g.deathTimer.Update()
+		if g.deathTimer.IsDone() {
+			if g.playerLives <= 0 {
+				// Game over - stop UFO sound and transition to end screen
+				if g.ufoAudioPlayer != nil {
+					g.ufoAudioPlayer.Pause()
+					g.ufoAudioPlayer = nil
+				}
+				g.sceneManager.TransitionTo(SceneEndScreen)
+				return nil
+			} else {
+				// Player has lives remaining - respawn
+				g.playerDead = false
+				// Reset player position to center bottom
+				playerWidth := g.player.Sprite.Bounds().Dx()
+				g.player.X = (320 - playerWidth) / 2
+			}
+		}
+		// Don't process other game logic while player is dead
+		return nil
+	}
+```
+
+This code does a check to see if the player was hit and needs to lose a life (or ultimately to the end screen).
+
+Now the player loses a life every time they are hit. After 5 lives, the game is over. We have fully wired through our other win condition.
+
+Having five lives is great, but not knowing how many are left isn't a good game mechanic. Let's fix it.
+The amount of work here is pretty small. Just add this block to the end of our Draw function in `game_scene.go`
+
+```go
+	livesText := fmt.Sprintf("LIVES: %d", g.playerLives)
+	livesTextOp := &text.DrawOptions{}
+	livesTextOp.GeoM.Scale(float64(scale), float64(scale))
+	// Position at top right - calculate text width and position accordingly
+	livesTextBounds, _ := text.Measure(livesText, g.scoreFont, 0)
+	livesTextOp.GeoM.Translate(offsetX+gameWidth-livesTextBounds-23*scale, offsetY+15*scale)
+	livesTextOp.ColorScale.ScaleWithColor(color.RGBA{220, 220, 255, 255})
+	text.Draw(screen, livesText, g.scoreFont, livesTextOp)
+```
+
+With that, we have our game. It's basic, but true to it's origin.
