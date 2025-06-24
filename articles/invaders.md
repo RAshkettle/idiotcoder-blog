@@ -944,3 +944,153 @@ Run it and you see we now have enemies!
 ![enemies](invaders/enemies.png)
 
 Now that we have enemies, let's get them moving!
+We need the current direction for the aliens to move, and we will also need a timer, as we want the aliens to move once per second, but speed up as each alien dies.
+
+All the work for this goes into `game_scene.go`
+
+```go
+type GameScene struct {
+	sceneManager     *SceneManager
+	player           *Player
+	bases            []*Base
+	aliens           []*Alien
+	currentDirection Direction
+	timer            *stopwatch.Stopwatch
+}
+```
+
+Let's set the factory to create these new fields.
+
+```go
+func NewGameScene(sm *SceneManager) *GameScene {
+
+	g := &GameScene{
+		sceneManager:     sm,
+		player:           NewPlayer(),
+		aliens:           SpawnAlienWave(),
+		timer:            stopwatch.NewStopwatch(1 * time.Second),
+		currentDirection: LEFT,
+	}
+	g.bases = CreateBases(g.player.Y)
+
+	return g
+}
+```
+
+Just for code clarity, I made a helper function to toggle the direction.
+
+```go
+func toggleDirection(current Direction) Direction {
+	if current == LEFT {
+		return RIGHT
+	}
+	return LEFT
+}
+```
+
+Then we need to move the aliens. They move as a unit, on tic. When the aliens on the end reach the edge of our screen, reverse their direction and move them 8 pixels down.
+
+```go
+func (g *GameScene) moveAliens() {
+	// Check if any alien will hit the screen boundaries
+	shouldReverse := false
+	for _, alien := range g.aliens {
+		if g.currentDirection == LEFT && alien.X-8 <= 0 {
+			shouldReverse = true
+			break
+		} else if g.currentDirection == RIGHT && alien.X+8 >= 320-ALIEN_SIZE {
+			shouldReverse = true
+			break
+		}
+	}
+	// If we need to reverse direction, do it and move down
+	if shouldReverse {
+		g.currentDirection = toggleDirection(g.currentDirection)
+		for _, alien := range g.aliens {
+			alien.Y += 8        // Move down when reversing direction
+			alien.ToggleFrame()
+		}
+	} else {
+		for _, alien := range g.aliens {
+			if g.currentDirection == LEFT {
+				alien.X -= 8
+			} else {
+				alien.X += 8
+			}
+			alien.ToggleFrame()
+		}
+	}
+}
+```
+
+Lastly, we need to add the logic to our Update function. The logic is as follows.  
+Get the speed for the timer. This is how fast the tics are for the alien movement. The less aliense we have, the faster they will move.  
+Update Player already was there.  
+Now update and check the timer. When it's ready, move the aliens and set the new stopwatch time.
+
+```go
+func (g *GameScene) Update() error {
+	currentSpeed := len(g.aliens) * 20
+
+	err := g.player.Update()
+	if err != nil {
+		panic(err)
+	}
+	if !g.timer.IsRunning() {
+		g.timer.Start()
+	}
+	g.timer.Update()
+	if g.timer.IsDone() {
+		// This is when we animate and Move
+		g.moveAliens()
+		g.timer = stopwatch.NewStopwatch(time.Duration(currentSpeed) * time.Millisecond)
+		g.timer.Start()
+	}
+	return nil
+}
+```
+
+They MOVE! This is starting to really look like it should. We need sound though. Let's add it.
+Again, all we need to change will be in `game_scene.go`
+
+First, add an audio context to our GameScene struct
+
+```go
+audioContext     *audio.Context
+```
+
+Then define a new context and add it to our struct
+
+```go
+func NewGameScene(sm *SceneManager) *GameScene {
+	g := &GameScene{
+		sceneManager:     sm,
+		player:           NewPlayer(),
+		aliens:           SpawnAlienWave(),
+		timer:            stopwatch.NewStopwatch(1 * time.Second),
+		currentDirection: LEFT,
+		audioContext:     audio.NewContext(44100),
+	}
+	g.bases = CreateBases(g.player.Y)
+	return g
+}
+```
+
+Then at the very top of MoveAliens, add this...
+
+```go
+	moveStream, err := vorbis.DecodeWithSampleRate(g.audioContext.SampleRate(), bytes.NewReader(assets.MoveSound))
+	if err != nil {
+
+		return // Don't proceed if decoding failed
+	}
+
+	moveAudioPlayer, err := g.audioContext.NewPlayer(moveStream)
+	if err != nil {
+
+		return // Don't proceed if player creation failed
+	}
+	moveAudioPlayer.Play()
+```
+
+Now run your game and you should hear the movement sound each time they shift. GREAT!
