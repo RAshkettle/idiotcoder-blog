@@ -61,7 +61,7 @@ export default function Component() {
                 alt={`${game.title} screenshot`}
                 width={500}
                 height={300}
-                className="w-full h-48 object-cover"
+                className="w-full h-48 object-contain bg-black"
               />
             </div>
 

@@ -13,7 +13,7 @@ I'm very much all about retro gaming. Particularly I have a soft spot for Space 
 
 The first thing we want to do it a good old `go mod init Invaders`
 
-Now we want to create a folder and call it `assets`. There are a good number of assets in this game, and since I created all of these, feel free to swipe them for yourself [here](https://github.com/RAshkettle/go-Invaders--tutorial). Grab everything in the assets subdirectory, including `assets.go`. We will be explaining everything next, but if you don't want to type it all out, there it is.
+Now we want to create a folder and call it `assets`. There are a good number of assets in this game, and since I created all of these, feel free to swipe them for yourself [here](https://github.com/RAshkettle/go-invaders-tutorial). Grab everything in the assets subdirectory, including `assets.go`. We will be explaining everything next, but if you don't want to type it all out, there it is.
 
 I like starting with painting the basic layout of the game first, so we will want to load the assets. In doing so, we will be creating an embedded filesystem (our assets will be embedded into our executable). This will make deploying the game much easier, and allow for less manipulation shenanigans.
 
