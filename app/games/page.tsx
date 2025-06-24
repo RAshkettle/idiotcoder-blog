@@ -29,6 +29,14 @@ export default function Component() {
       image: "/union.png?height=300&width=500",
       link: "/union.html",
     },
+    {
+      id: 3,
+      title: "Invaders",
+      description: "Space Invaders Remake for my Tutorials.",
+      genre: "Arcade",
+      image: "/invaders/go-invaders.png?height=300&width=500",
+      link: "/invaders.html",
+    },
   ];
 
   return (
