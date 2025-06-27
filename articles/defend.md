@@ -6,7 +6,7 @@ categories: ["go", "tutorial"]
 image: "invaders/go-invaders.png"
 ---
 
-# Defend - Creating a Defenders remake in Golang
+# Defend - IN PROGRESS - Creating a Defenders remake in Golang
 
 Continuing in my love for all things retro gaming, we come to Defender. This was one of the first real action type games. As always, the code for this tutorial can be found [here](https://github.com/RAshkettle/Defend)
 Let's get started!
@@ -1348,3 +1348,37 @@ func (m *Minimap) Draw(screen *ebiten.Image) {
 	}
 }
 ```
+
+Now that it's fixed, let's add the aliens. We need to start by passing in the aliens slice to the Draw function of the mini-map. Open `minimap.go` and change the Draw function signature to this...
+
+```go
+unc (m *Minimap) Draw(screen *ebiten.Image, aliens []*Alien) {
+```
+
+Now, in that same function, anywhere after drawing the terrain, add this...
+
+```go
+	for _, alien := range aliens {
+		minimapAlienX := m.posX + int(alien.X*scaleX)
+		minimapAlienY := m.posY + int(alien.Y*scaleY)
+
+		// Ensure the dot is within the minimap bounds before drawing
+		if minimapAlienX >= m.posX && minimapAlienX < m.posX+m.width &&
+			minimapAlienY >= m.posY && minimapAlienY < m.posY+m.height {
+			// Draw a 1x1 pixel dot
+			screen.Set(minimapAlienX, minimapAlienY, color.RGBA{255, 255, 255, 255})
+		}
+	}
+```
+
+Close that file and open `game_scene.go`.
+At the very bottom of the Draw function, we call the Draw function for the mini-map. Change it to this.
+
+```go
+g.minimap.Draw(screen, g.aliens)
+```
+
+Note that all we really did here was pass the alien slice along too.
+
+That's all there is to it. Fire up the game and you should see this!
+![alien dots](defend/fixedMini.png)
