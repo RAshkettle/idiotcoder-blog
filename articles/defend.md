@@ -1382,3 +1382,81 @@ Note that all we really did here was pass the alien slice along too.
 
 That's all there is to it. Fire up the game and you should see this!
 ![alien dots](defend/fixedMini.png)
+
+I guess we should make them move now. We can start with some contants that will help. I'm going to use a sin to move them. Open up `alien.go` and let's add the constants we will need for this.
+
+```go
+const (
+	alienVerticalRange = 210.0 - 40.0
+	alienAmplitude     = alienVerticalRange / 2
+	alienBaseY         = 40.0 + alienAmplitude
+	alienFrequency     = (2 * math.Pi) / 320 /
+)
+```
+
+Next, we want to add a facing to our Alien struct, so we know which direction it's moving in.
+We will determine the facing randomly with a coin flip. Since we are already doing a sin pattern, we will determine the starting location inside our factory programatically.
+
+```go
+type Alien struct {
+	X         float64
+	Y         float64
+	Image     *ebiten.Image
+	Active    bool
+	Facing	FACING
+}
+
+func NewAlien(x float64) *Alien {
+	facing := RIGHT
+	if rand.Float64() < 0.5 {
+		facing = LEFT
+	}
+	// Calculate initial Y based on X
+	y := alienBaseY + math.Sin(x*alienFrequency)*alienAmplitude
+	return &Alien{
+		X:         x,
+		Y:         y,
+		Image:     assets.AlienSprite,
+		Active:    true,
+		Facing:    facing,
+	}
+}
+```
+
+Note that when you do this, you will need to edit the call to NewAlien in CheckAlienSpawn so it no longer sends the Y value.
+
+We will need to convert the facing to something more math based.
+
+```go
+func GetDirectionFromFacing(facing FACING) float64 {
+	if facing == RIGHT {
+		return 1.0
+	}
+	return -1.0
+}
+```
+
+With this, our update logic is rather simple. Just follow a sin wave
+
+```go
+func (a *Alien) Update() {
+	speed := 0.75
+	a.X += GetDirectionFromFacing(a.Facing) * speed
+	a.Y = alienBaseY + math.Sin(a.X*alienFrequency)*alienAmplitude
+}
+```
+
+And to wire it all in, open up `game_scene.go` and change Update to this...
+
+```go
+func (g *GameScene) Update() error {
+	if err := g.player.Update(g.camera, float64(g.terrain.width)); err != nil {
+		return err
+	}
+	for _, a := range g.aliens {
+		a.Update()
+	}
+	g.aliens = CheckAlienSpawn(g.aliens, g.terrain.width)
+	return nil
+}
+```
