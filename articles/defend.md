@@ -1460,3 +1460,105 @@ func (g *GameScene) Update() error {
 	return nil
 }
 ```
+
+Now when you launch the game, the aliens all move as soon as they spawn. The aliens and the mini-map are still a bit buggy. With them moving it's a lot easier to see. Let's make it better.
+
+Open up `alien.go` and let's change the Update function.
+
+```go
+func (a *Alien) Update(terrainWidth float64) {
+	speed := 0.75
+	a.X += GetDirectionFromFacing(a.Facing) * speed
+	a.Y = alienBaseY + math.Sin(a.X*alienFrequency)*alienAmplitude
+
+	// Wrap alien.X to stay within terrain boundaries
+	for a.X < 0 {
+		a.X += terrainWidth
+	}
+	for a.X >= terrainWidth {
+		a.X -= terrainWidth
+	}
+}
+```
+
+If you waited long enough, aliens just simply left the map. That caused all kinds of strange happenings. Passing in the terrain width and clamping to it with wraparound works here. Of course, now when you try to compile, it fails. I bet you can fix this one all on your own.
+
+If not, just look in `game_scene.go` and pass `g.terrain.width` to the Update function for Alien.
+
+That should handle the disappearing alien shenanigans.
+
+I guess it's time to think about shooting the aliens now.
+
+We can start with the easiest change. Open `alien.go` and look at the Draw function. At the very top of the function, add this.
+
+```go
+if !a.Active {
+		return
+	}
+```
+
+If the alien isn't active (so it's been shot), don't bother drawing it. It will get removed the next frame.
+Next we open up `laser.go` and add the following function.
+
+```go
+func (l *Laser) CheckAlienCollision(aliens []*Alien) {
+	var startX, endX float64
+	if l.Direction == RIGHT {
+		startX = l.X
+		endX = l.X + float64(l.CurrentLength)
+	} else {
+		startX = l.X - float64(l.CurrentLength)
+		endX = l.X
+	}
+
+	// Ensure startX is always the smaller value
+	if startX > endX {
+		startX, endX = endX, startX
+	}
+
+	for _, alien := range aliens {
+		alienLeft := alien.X
+		alienRight := alien.X + float64(alien.Image.Bounds().Dx())
+		alienTop := alien.Y
+		alienBottom := alien.Y + float64(alien.Image.Bounds().Dy())
+
+		// Check if any part of the laser overlaps with the alien
+		if !(endX < alienLeft || startX > alienRight) &&
+			l.Y >= alienTop && l.Y <= alienBottom {
+			l.Active = false
+			alien.Active = false
+			return
+		}
+	}
+}
+```
+
+This function is actually straightforward. It gets the location of the laser, determines the location of the entire length of the beam (like when it draws it). It then does a simple overlap test on each alien. The first alien to overlap the beam is hit. Mark the beam and the alien both as inactive.
+To wire it all up, some changes to the Update function of `game_scene.go` are required.
+Formerly, we really just updated the player, then the aliens. Now we iterate the lasers for collisions and clean up any aliens that were destroyed.
+
+```go
+func (g *GameScene) Update() error {
+	if err := g.player.Update(g.camera, float64(g.terrain.width)); err != nil {
+		return err
+	}
+	for _, a := range g.aliens {
+		a.Update(g.terrain.width)
+	}
+	for _, laser := range g.player.ActiveShots {
+		laser.CheckAlienCollision(g.aliens)
+	}
+	//Clean up any dead aliens
+	activeAliens := make([]*Alien, 0)
+	for _, a := range g.aliens {
+		if a.Active {
+			activeAliens = append(activeAliens, a)
+		}
+	}
+	g.aliens = activeAliens
+	g.aliens = CheckAlienSpawn(g.aliens, g.terrain.width)
+	return nil
+}
+```
+
+Run the game, and shoot the aliens! I guess we should come up with scoring next.
