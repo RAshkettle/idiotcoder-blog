@@ -1501,29 +1501,49 @@ If the alien isn't active (so it's been shot), don't bother drawing it. It will 
 Next we open up `laser.go` and add the following function.
 
 ```go
-func (l *Laser) CheckAlienCollision(aliens []*Alien) {
-	var startX, endX float64
+func (l *Laser) CheckAlienCollision(aliens []*Alien, terrainWidth float64) {
+	var laserStartX, laserEndX float64
 	if l.Direction == RIGHT {
-		startX = l.X
-		endX = l.X + float64(l.CurrentLength)
+		laserStartX = l.X
+		laserEndX = l.X + float64(l.CurrentLength)
 	} else {
-		startX = l.X - float64(l.CurrentLength)
-		endX = l.X
+		laserStartX = l.X - float64(l.CurrentLength)
+		laserEndX = l.X
 	}
 
-	// Ensure startX is always the smaller value
-	if startX > endX {
-		startX, endX = endX, startX
+	// Ensure laserStartX is always the smaller value
+	if laserStartX > laserEndX {
+		laserStartX, laserEndX = laserEndX, laserStartX
 	}
 
 	for _, alien := range aliens {
-		alienLeft := alien.X
-		alienRight := alien.X + float64(alien.Image.Bounds().Dx())
 		alienTop := alien.Y
 		alienBottom := alien.Y + float64(alien.Image.Bounds().Dy())
 
-		// Check if any part of the laser overlaps with the alien
-		if !(endX < alienLeft || startX > alienRight) &&
+		// Check for collision with the alien at its current position
+		alienLeft := alien.X
+		alienRight := alien.X + float64(alien.Image.Bounds().Dx())
+		if !(laserEndX < alienLeft || laserStartX > alienRight) &&
+			l.Y >= alienTop && l.Y <= alienBottom {
+			l.Active = false
+			alien.Active = false
+			return
+		}
+
+		// Check for collision with the alien wrapped around the terrain (left side)
+		wrappedAlienLeft := alien.X - terrainWidth
+		wrappedAlienRight := alien.X - terrainWidth + float64(alien.Image.Bounds().Dx())
+		if !(laserEndX < wrappedAlienLeft || laserStartX > wrappedAlienRight) &&
+			l.Y >= alienTop && l.Y <= alienBottom {
+			l.Active = false
+			alien.Active = false
+			return
+		}
+
+		// Check for collision with the alien wrapped around the terrain (right side)
+		wrappedAlienLeft = alien.X + terrainWidth
+		wrappedAlienRight = alien.X + terrainWidth + float64(alien.Image.Bounds().Dx())
+		if !(laserEndX < wrappedAlienLeft || laserStartX > wrappedAlienRight) &&
 			l.Y >= alienTop && l.Y <= alienBottom {
 			l.Active = false
 			alien.Active = false
@@ -1534,6 +1554,8 @@ func (l *Laser) CheckAlienCollision(aliens []*Alien) {
 ```
 
 This function is actually straightforward. It gets the location of the laser, determines the location of the entire length of the beam (like when it draws it). It then does a simple overlap test on each alien. The first alien to overlap the beam is hit. Mark the beam and the alien both as inactive.
+I had a LOT of trouble with aliens that had wrapped so I added an extra set of checks to account for that. It's far from elegant, but it works.
+
 To wire it all up, some changes to the Update function of `game_scene.go` are required.
 Formerly, we really just updated the player, then the aliens. Now we iterate the lasers for collisions and clean up any aliens that were destroyed.
 
@@ -1542,13 +1564,14 @@ func (g *GameScene) Update() error {
 	if err := g.player.Update(g.camera, float64(g.terrain.width)); err != nil {
 		return err
 	}
+
 	for _, a := range g.aliens {
 		a.Update(g.terrain.width)
 	}
 	for _, laser := range g.player.ActiveShots {
-		laser.CheckAlienCollision(g.aliens)
+		laser.CheckAlienCollision(g.aliens, g.terrain.width)
 	}
-	//Clean up any dead aliens
+	// Clean up any dead aliens
 	activeAliens := make([]*Alien, 0)
 	for _, a := range g.aliens {
 		if a.Active {
@@ -1561,4 +1584,46 @@ func (g *GameScene) Update() error {
 }
 ```
 
-Run the game, and shoot the aliens! I guess we should come up with scoring next.
+Now let's make it so that if the Aliens come into contact with the player, it triggers the player's death. For now, we will transition directly to the End Scene, but we will come back later to add lives.
+
+In `game_scene.go` create a function called CheckPlayerAlienCollision like so.
+
+```go
+func (g *GameScene) CheckPlayerAlienCollision() {
+	playerWorldX := g.player.X + g.camera.X
+	p := image.Rect(int(playerWorldX), int(g.player.Y), int(playerWorldX)+g.player.Image.Bounds().Dx(), int(g.player.Y)+g.player.Image.Bounds().Dy())
+
+	for _, a := range g.aliens {
+		// Check collision at alien's current position
+		alienRect := image.Rect(int(a.X), int(a.Y), int(a.X)+a.Image.Bounds().Dx(), int(a.Y)+a.Image.Bounds().Dy())
+		if alienRect.Overlaps(p) {
+			a.Active = false
+			g.sceneManager.TransitionTo(SceneEndScreen)
+			return
+		}
+
+		// Check collision with alien wrapped to the left
+		wrappedAlienRectLeft := image.Rect(int(a.X-g.terrain.width), int(a.Y), int(a.X-g.terrain.width)+a.Image.Bounds().Dx(), int(a.Y)+a.Image.Bounds().Dy())
+		if wrappedAlienRectLeft.Overlaps(p) {
+			a.Active = false
+			g.sceneManager.TransitionTo(SceneEndScreen)
+			return
+		}
+
+		// Check collision with alien wrapped to the right
+		wrappedAlienRectRight := image.Rect(int(a.X+g.terrain.width), int(a.Y), int(a.X+g.terrain.width)+a.Image.Bounds().Dx(), int(a.Y)+a.Image.Bounds().Dy())
+		if wrappedAlienRectRight.Overlaps(p) {
+			a.Active = false
+			g.sceneManager.TransitionTo(SceneEndScreen)
+			return
+		}
+	}
+}
+```
+
+Seriously, it's nearly the same as the laser check. I may want to optimize that later, but for now...it's fine.
+We need to call this, so at the very end of Update, right above `return nil`, add this line.
+
+```go
+g.CheckPlayerAlienCollision()
+```
