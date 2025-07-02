@@ -1713,3 +1713,28 @@ Run the game and die and you will see this...
 ![end scene](defend/endscene.png)
 
 Still, feels odd. I think it's time we added more sounds. Let's add a sound when the alien dies and add one for when we do.
+
+In `assets/audio` you will find wav files for player and alien explosions. Let's load them in `assets.go`
+
+```go
+var PlayerDeathSound = loadPlayerFromWav("audio/playerExplosion.wav", 0.6)
+var AlienDeathSound = loadPlayerFromWav("audio/alienExplosion.wav", 0.3)
+```
+
+Now head on over to `laser.go` and look at the CheckAlienCollision method. There are three places where we check for collisions, one normal and two for wrapping. In each, you can see we set the alien's Active property to false. In all three places, right before the return, add this.
+
+```go
+			assets.AlienDeathSound.Rewind()
+			assets.AlienDeathSound.Play()
+```
+
+Then in `game_scene.go` look at CheckPlayerAlienCollision and look for the same three spots. Add these two lines in each place.
+
+```go
+			assets.PlayerDeathSound.Rewind()
+			assets.PlayerDeathSound.Play()
+```
+
+That's it! We now have sounds when the aliens are hit or when the player dies.
+
+I think it's time we let the Aliens shoot back!
